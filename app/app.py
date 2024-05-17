@@ -1,18 +1,24 @@
+import base64
 import json
+import math
 import os
 import re
-from flask import Flask, flash, redirect, render_template, request, url_for, send_file
-from werkzeug.utils import secure_filename
-import math
-import base64
+
+from dotenv import load_dotenv
+from flask import (Flask, flash, redirect, render_template, request, send_file,
+                   url_for)
 from openai import OpenAI
+from werkzeug.utils import secure_filename
+
+# Carregar variáveis de ambiente do arquivo .env
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Necessário para mensagens flash
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 MODEL = "gpt-4o"
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -154,7 +160,7 @@ def select_structure():
 def check_validation_status():
     selected_project = request.form['project']
     validation_data = load_validation_data()
-    
+
     if 'validations' in validation_data and selected_project in validation_data['validations']:
         estruturas_validadas = validation_data['validations'][selected_project]
         total_nao_validadas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'to_be_valided')
@@ -167,7 +173,7 @@ def check_validation_status():
 @app.route('/validate_project', methods=['POST'])
 def validate_project():
     project = request.form['project']
-    
+
     validation_data = load_validation_data()
     if 'validations' not in validation_data:
         validation_data['validations'] = {}
@@ -220,14 +226,14 @@ def upload_photo():
             upload_folder = os.path.join('static', 'uploads')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
-            
+
             file_path = os.path.join(upload_folder, filename)
             file.save(file_path)  # Salva a imagem no diretório 'static/uploads'
             uploaded_image = url_for('static', filename='uploads/' + filename)  # Caminho da imagem enviada
-            
+
             # Chame a função que gera o novo output.json antes de processá-lo
             generate_new_output_json(file_path)
-            
+
             return redirect(url_for('results', project=project, post=post))
         else:
             flash('Invalid file type. Only image files are allowed.')
@@ -241,13 +247,13 @@ def validate_results():
     comments = request.form['comments']
     project = request.args.get('project')
     post = request.args.get('post')
-    
+
     validation_data = load_validation_data()
     if 'validations' not in validation_data:
         validation_data['validations'] = {}
     if project not in validation_data['validations']:
         validation_data['validations'][project] = {}
-    
+
     validation_data['validations'][project][post] = {
         'status': validation,
         'comments': comments
@@ -277,7 +283,7 @@ def results():
             validation_data['validations'] = {}
         if project not in validation_data['validations']:
             validation_data['validations'] = {}
-        
+
         if action == 'validate_post':
             validation_data['validations'][project][post] = {
                 'status': 'valid',
@@ -300,17 +306,17 @@ def results():
         elif action == 'validate_project':
             flash('Projeto validado com sucesso!')
             return redirect(url_for('home'))
-    
+
     project_data = load_project_data()
     gabarito = project_data[project][post]['Gabarito']
-    
+
     with open('output.json', 'r', encoding='utf-8') as file:
         output = json.load(file)
 
     encontrados = {}
     extras = {}
     caracteristicas = {}
-    
+
     for item, details in gabarito.items():
         if item in output:
             encontrados[item] = "Sim"

@@ -1,0 +1,8 @@
+- gpt tem dificuldade em diferenciar o transformador trifásico da chave seccionadora pela aparecencia similar.
+
+- fotos do poste inteiro, dependendo da altura do poste, ficam com uma qualidade muito ruim no topo, dificultando a identificação
+	- talvez fazer o 'treinamento' do gpt com fotos de 2~3 angulos diferentes de cada componentes e de qualidade alta
+
+- possível solução com maior indice de acerto:
+	- enviar ao mesmo tempo para o gpt fotos quase que individuais de cada componente que foi instalado
+	- prompt: 'vou te enviar 5 fotos do poste que foi instalado, identifique os componentes de cada uma e retorne o json com os componentes identificados'

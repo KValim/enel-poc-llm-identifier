@@ -1,0 +1,19 @@
+{
+    "Itens Verificados": {
+        "Poste Elétrico": "Sim",
+        "Cruzeta": "Sim",
+        "Chave Seccionadora (Chave Faca)": "Não",
+        "Religador": "Não"
+    },
+    "Itens Extras": [
+        "Chave Seccionadora Telecomandada"
+    ],
+    "Características": {
+        "Poste Elétrico": {
+            "Quantidade Identificada": 1
+        },
+        "Cruzeta": {
+            "Quantidade Identificada": 1
+        }
+    }
+}

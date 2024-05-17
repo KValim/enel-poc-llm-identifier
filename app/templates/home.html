@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seleção de Projeto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function openPDF() {
+            var selectedProject = document.getElementById('project').value;
+            var url = '/open_pdf?file=' + encodeURIComponent(selectedProject + '.pdf');
+            window.open(url, '_blank');
+        }
+
+        function showSummary(project) {
+            $.post('/project_summary', { project: project }, function(data) {
+                var resumo = JSON.parse(data);
+                document.getElementById('project-summary').innerHTML = `
+                    <h2>Resumo do Projeto</h2>
+                    <p><strong>Estruturas Avaliadas: ${resumo.total_avaliadas}/${resumo.total_estruturas}</strong></p>
+                    <p>Total de Estruturas Validadas: ${resumo.total_validas}</p>
+                    <p>Total de Estruturas Invalidas: ${resumo.total_invalidas}</p>
+                    <p>Total de Estruturas Não Validadas: ${resumo.total_nao_validadas}</p>
+                    <form id="validate-project-form" method="post" action="/validate_project">
+                        <input type="hidden" name="project" id="selected-project" value="">
+                        <button type="button" class="btn btn-success mt-3" onclick="validateProject()">Validar Projeto</button>
+                    </form>
+                `;
+            });
+        }
+
+        function validateProject() {
+            var selectedProject = document.getElementById('project').value;
+            if (!selectedProject) {
+                alert("Selecione um projeto primeiro.");
+                return;
+            }
+
+            $.post('/check_validation_status', { project: selectedProject }, function(data) {
+                var result = JSON.parse(data);
+                if (result.has_unvalidated_structures) {
+                    var confirmValidation = confirm("Existem estruturas não validadas. Tem certeza que deseja validar o projeto?");
+                    if (confirmValidation) {
+                        $('#validate-project-form').submit();
+                    }
+                } else {
+                    $('#validate-project-form').submit();
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $('#project').change(function() {
+                var selectedProject = $(this).val();
+                if (selectedProject) {
+                    $('#select-structure-btn').prop('disabled', false);
+                    $('#open-pdf-btn').prop('disabled', false);
+                    showSummary(selectedProject);
+                } else {
+                    $('#select-structure-btn').prop('disabled', true);
+                    $('#open-pdf-btn').prop('disabled', true);
+                    document.getElementById('project-summary').innerHTML = '';
+                }
+            });
+            $('#project').trigger('change');
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1 class="text-center my-4">Projetos a serem validados:</h1>
+        <form method="post">
+            <div class="mb-3">
+                <label for="project" class="form-label">Escolha um projeto:</label>
+                <select name="project" id="project" class="form-select" aria-describedby="projectHelp">
+                    <option value="">Selecione um projeto</option>
+                    {% for project in projects %}
+                        <option value="{{ project }}">{{ project }}</option>
+                    {% endfor %}
+                </select>
+                <small id="projectHelp" class="form-text text-muted">Passe o mouse sobre os projetos para ver detalhes.</small>
+            </div>
+            <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Conferir Estruturas</button>
+            <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF Selecionado</button>
+        </form>
+
+        <!-- Contêiner para o Resumo do Projeto -->
+        <div id="project-summary" class="mt-4"></div>
+    </div>
+</body>
+</html>

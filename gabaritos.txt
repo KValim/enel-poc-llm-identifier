@@ -1,0 +1,125 @@
+poste 1
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 3
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 3
+  },
+  "Transformador Trifásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Luminária":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}
+
+poste 2 
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 4
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 2
+  },
+  "Transformador Trifásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Transformador Monofásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Luminária":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}
+
+poste 3
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 2
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Transformador Monofásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}
+
+poste 4
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 3
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 2
+  },
+  "Transformador Trifásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Transformador Monofásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}
+
+poste 5
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 3
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 2
+  },
+  "Transformador Trifásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Transformador Monofásico":{
+    "Existe": "True",
+    "Quantidade": 1
+  },
+  "Luminária":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}
+
+poste 6
+
+"Gabarito":{
+  "Cruzeta":{
+    "Existe": "True",
+    "Quantidade": 4
+  },
+  "Chave Seccionadora (Chave Faca)":{
+    "Existe": "True",
+    "Quantidade": 9
+  },
+  "Rerligador":{
+    "Existe": "True",
+    "Quantidade": 1
+  }
+}

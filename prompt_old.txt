@@ -1,0 +1,59 @@
+## MISSÃO
+- Retornar um json com os objetos identificados.
+
+### INSTRUÇÃO
+- Ler o word em anexo (descrições componentes.docx)
+- Aprender cuidadosamente através das imagens e descrições dos componentes
+- Você receberá diversas imagens do mesmo poste de varios ângulos diferentes.
+- Algumas imagens podem conter dois ou três trasformadores, geralmente um trifásico e um monofásico, ou três monofásicos, preste atenção quando isso acontecer.
+
+### CHAVES E VALORES JSON
+{
+  "Foto": {
+    "Qualidade": "Indica se a qualidade das fotos é Ruim ou Boa, baseada em critérios como nitidez e detalhes visíveis.",
+    "Foco": "Determina se as fotos estão com foco adequado ou sem foco.",
+    "Visibilidade": "Descreve se a visibilidade dos objetos nas fotos é Parcial ou Completa.",
+    "Ângulos Necessários": "Avalia se são necessários mais ângulos para uma análise completa ou se os ângulos capturados são suficientes.",
+    "Iluminação": "Indica se a iluminação das fotos é Adequada ou Inadequada para análise."
+  },
+  "Chave Seccionadora Telecomandada": "Indica a presença (True) ou ausência (False) de uma chave seccionadora telecomandada no poste.",
+  "Chave Seccionadora (Chave Faca)": "Indica a presença (True) ou ausência (False) de uma chave seccionadora do tipo faca no poste.",
+  "Chave Seccionadora Por Mola": "Indica a presença (True) ou ausência (False) de uma chave seccionadora por mola no poste.",
+  "Transformador Monofásico": "Indica a presença (True) ou ausência (False) de um transformador monofásico no poste.",
+  "Transformador Trifásico": "Indica a presença (True) ou ausência (False) de um transformador trifásico no poste.",
+  "Religador": "Indica a presença (True) ou ausência (False) de um religador no poste.",
+  "Medidor de Energia": "Indica a presença (True) ou ausência (False) de um medidor de energia no poste.",
+  "Luminária": "Indica a presença (True) ou ausência (False) de uma luminária no poste.",
+  "Árvore": "Indica a presença (True) ou ausência (False) de árvores nas proximidades do poste.",
+  "Características do Transformador Monofásico": {
+    "Localização no Poste": "Especifica a localização do transformador no poste, seja no Topo ou no Centro.",
+    "Nível de Oxidação": "Descreve o nível de oxidação observado no transformador, podendo ser Baixo, Médio ou Alto.",
+  },
+  "Características do Transformador Trifásico": {
+    "Localização no Poste": "Especifica a localização do transformador no poste, seja no Topo ou no Centro.",
+    "Nível de Oxidação": "Descreve o nível de oxidação observado no transformador, podendo ser Baixo, Médio ou Alto.",
+  },
+  "Características do Poste Elétrico": {
+    "Material": "Descreve o material de construção do poste, como Concreto, Metal, Madeira ou uma combinação de Concreto ou Metal.",
+    "Estado de Conservação": "Indica o estado de conservação do poste, podendo ser Novo ou Danificado."
+  },
+  "Características da Luminária": {
+    "Localização no Poste": "Descreve a localização da luminária no poste, podendo ser do Meio para a base até a parte Inferior."
+  },
+  "Presença de Árvore": {
+    "Proximidade com o Poste": "Indica quão próxima a árvore está do poste, podendo estar Próxima, Próxima ao fundo, ou Adjacente.",
+    "Risco de Interferência": "Avalia o risco de interferência da árvore com o poste ou a infraestrutura elétrica, podendo necessitar de intervenções como poda ou remoção.",
+    "Intervenções": "Avalia a necessidade de possíveis intervenções necessárias para mitigar os riscos causados pela árvore, como Poda ou Remoção.",
+    "Interferência Visual": "Avalia o nível de interferência visual causada pela árvore, podendo ser Baixa, Moderada ou Alta."
+  },
+  "Comentário": "Comenta o motivo da identificação de cada componente."
+}
+
+### NOTAS
+- Sempre responder em pt-br
+- Não precisa retornar keys com valores vazios ou False.
+- Respire fundo.
+- Pense passo a passo.
+- Caso se empenhe muito te darei uma gorjeta de $1000.
+- Visualize o estado após cada etapa de raciocínio.
+- Não retorne nada além do json requerido, sem nenhum comentário ou análise.

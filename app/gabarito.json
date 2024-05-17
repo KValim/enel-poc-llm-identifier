@@ -1,0 +1,16 @@
+{
+    "Gabarito":{
+        "Cruzeta":{
+            "Existe": "True"
+        },
+        "Chave Seccionadora (Chave Faca)":{
+            "Existe": "True"
+        },
+        "Transformador Trifásico":{
+            "Existe": "True"
+        },
+        "Luminária":{
+            "Existe": "True"
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+    "validations": {
+        "Projeto X": {
+            "Poste 1": {
+                "status": "valid",
+                "comments": ""
+            },
+            "Poste 2": {
+                "status": "to_be_valided",
+                "comments": ""
+            },
+            "Poste 3": {
+                "status": "to_be_valided",
+                "comments": ""
+            }
+        },
+        "Projeto Y": {
+            "Poste 4": {
+                "status": "valid",
+                "comments": "Testestes"
+            },
+            "Poste 5": {
+                "status": "valid",
+                "comments": ""
+            },
+            "Poste 6": {
+                "status": "invalid",
+                "comments": ""
+            }
+        },
+        "": {}
+    }
+}

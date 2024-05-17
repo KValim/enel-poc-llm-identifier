@@ -1,0 +1,162 @@
+{
+    "Projeto X": {
+        "Poste 1": {
+            "latitude": -23.550520,
+            "longitude": -46.633308,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 3
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 3
+                },
+                "Transformador Trifásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Luminária": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        },
+        "Poste 2": {
+            "latitude": -23.551020,
+            "longitude": -46.634308,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 4
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 2
+                },
+                "Transformador Trifásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Transformador Monofásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Luminária": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        },
+        "Poste 3": {
+            "latitude": -23.552520,
+            "longitude": -46.635308,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 2
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Transformador Monofásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        }
+    },
+    "Projeto Y": {
+        "Poste 4": {
+            "latitude": -22.910020,
+            "longitude": -43.207500,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 3
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 2
+                },
+                "Transformador Trifásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Transformador Monofásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        },
+        "Poste 5": {
+            "latitude": -22.911020,
+            "longitude": -43.208500,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 3
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 2
+                },
+                "Transformador Trifásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Transformador Monofásico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Luminária": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        },
+        "Poste 6": {
+            "latitude": -22.912020,
+            "longitude": -43.209500,
+            "Gabarito": {
+                "Poste Elétrico": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                },
+                "Cruzeta": {
+                    "Existe": "True",
+                    "Quantidade": 4
+                },
+                "Chave Seccionadora (Chave Faca)": {
+                    "Existe": "True",
+                    "Quantidade": 9
+                },
+                "Religador": {
+                    "Existe": "True",
+                    "Quantidade": 1
+                }
+            }
+        }
+    }
+}

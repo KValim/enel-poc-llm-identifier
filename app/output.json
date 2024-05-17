@@ -1,0 +1,10 @@
+{
+    "Poste Elétrico": true,
+    "Cruzeta": true,
+    "Chave Seccionadora Telecomandada": true,
+    "Quantidades": {
+        "Poste Elétrico": 1,
+        "Cruzeta": 1,
+        "Chave Seccionadora Telecomandada": 1
+    }
+}

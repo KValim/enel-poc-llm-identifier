@@ -2,11 +2,11 @@
     "validations": {
         "Projeto X": {
             "Poste 1": {
-                "status": "to_be_validated",
-                "comments": ""
+                "status": "invalid",
+                "comments": "Existe um transformador monofásico na estrutura."
             },
             "Poste 2": {
-                "status": "invalid",
+                "status": "to_be_validated",
                 "comments": ""
             },
             "Poste 3": {

@@ -1,3 +1,21 @@
 {
-  "mensagem": "Imagem não relacionada."
+  "Poste Elétrico": true,
+  "Cruzeta": true,
+  "Chave Seccionadora (Chave Faca)": true,
+  "Transformador Trifásico": true,
+  "Luminária": true,
+  "Características do Transformador Trifásico": {
+    "Nível de Oxidação": "Baixo"
+  },
+  "Características do Poste Elétrico": {
+    "Material": "Concreto",
+    "Estado de Conservação": "Novo"
+  },
+  "Quantidades": {
+    "Poste Elétrico": 1,
+    "Cruzeta": 2,
+    "Chave Seccionadora (Chave Faca)": 3,
+    "Transformador Trifásico": 1,
+    "Luminária": 1
+  }
 }

@@ -178,7 +178,6 @@ def generate_new_output_json(image_path):
   "Religador": "Indica a presença (true) ou ausência (false) de um religador no poste.",
   "Medidor de Energia": "Indica a presença (true) ou ausência (false) de um medidor de energia no poste.",
   "Luminária": "Indica a presença (true) ou ausência (false) de uma luminária no poste.",
-  "Árvore": "Indica a presença (true) ou ausência (false) de árvores nas proximidades do poste.",
   "Características do Transformador Monofásico": {
     "Nível de Oxidação": "Descreve o nível de oxidação observado no transformador, podendo ser Baixo, Médio ou Alto.",
   },
@@ -189,18 +188,11 @@ def generate_new_output_json(image_path):
     "Material": "Descreve o material de construção do poste, como Concreto, Metal, Madeira ou uma combinação de Concreto ou Metal.",
     "Estado de Conservação": "Indica o estado de conservação do poste, podendo ser Novo ou Danificado."
   },
-  "Características do Árvore": {
-    "Proximidade com o Poste": "Indica quão próxima a árvore está do poste, podendo estar Próxima, Próxima ao fundo, ou Adjacente.",
-    "Risco de Interferência": "Avalia o risco de interferência da árvore com o poste ou a infraestrutura elétrica, podendo necessitar de intervenções como poda ou remoção.",
-    "Intervenções": "Avalia a necessidade de possíveis intervenções necessárias para mitigar os riscos causados pela árvore, como Poda ou Remoção.",
-    "Interferência Visual": "Avalia o nível de interferência visual causada pela árvore, podendo ser Baixa, Moderada ou Alta."
-  },
   "Quantidades": {
     "Poste Elétrico": "Indica a quantidade na foto",
     "Cruzeta": "Indica a quantidade na foto",
     "Chave Seccionadora Telecomandada": "Indica a quantidade na foto",
     ...,
-    "Árvore": "Indica a quantidade na foto",
   }
 }
 

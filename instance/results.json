@@ -1,0 +1,29 @@
+{
+    "Itens Verificados": {
+        "Poste Elétrico": "Sim",
+        "Cruzeta": "Sim",
+        "Chave Seccionadora (Chave Faca)": "Sim",
+        "Transformador Trifásico": "Sim",
+        "Luminária": "Sim"
+    },
+    "Itens Extras": [
+        "Árvore"
+    ],
+    "Características": {
+        "Poste Elétrico": {
+            "Quantidade Identificada": 1
+        },
+        "Cruzeta": {
+            "Quantidade Identificada": 2
+        },
+        "Chave Seccionadora (Chave Faca)": {
+            "Quantidade Identificada": 3
+        },
+        "Transformador Trifásico": {
+            "Quantidade Identificada": 1
+        },
+        "Luminária": {
+            "Quantidade Identificada": 1
+        }
+    }
+}

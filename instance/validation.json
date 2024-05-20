@@ -2,15 +2,15 @@
     "validations": {
         "Projeto X": {
             "Poste 1": {
-                "status": "valid",
+                "status": "to_be_validated",
                 "comments": ""
             },
             "Poste 2": {
-                "status": "to_be_valided",
+                "status": "invalid",
                 "comments": ""
             },
             "Poste 3": {
-                "status": "to_be_valided",
+                "status": "valid",
                 "comments": ""
             }
         },

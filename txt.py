@@ -1,12 +1,13 @@
 import os
 
+
 def listar_arquivos(diretorio, ignorar):
     """Percorre todos os arquivos em um diretório, ignorando os especificados.
-    
+
     Args:
         diretorio (str): Caminho do diretório para começar a busca.
         ignorar (list): Lista de nomes de arquivos ou pastas para ignorar.
-        
+
     Returns:
         list: Lista de caminhos de arquivos que não estão ignorados.
     """
@@ -22,7 +23,7 @@ def listar_arquivos(diretorio, ignorar):
 
 def escrever_conteudo_arquivos(arquivos, nome_arquivo_saida='saida.txt'):
     """Escreve o conteúdo de vários arquivos em um único arquivo de saída com um formato específico.
-    
+
     Args:
         arquivos (list): Lista de caminhos de arquivos para ler.
         nome_arquivo_saida (str): Nome do arquivo de saída para escrever o conteúdo.
@@ -41,16 +42,21 @@ diretorio_root = os.path.dirname(os.path.realpath(__file__))
 
 # Arquivos e pastas a serem ignorados
 ignorar = [
-    '__pycache__', 'txt.py',
-    '.env', 'venv', '.venv', 'requirements.txt',
-    'campeonato-lifeilin-414320-382bc3fe5429.json',
-    '.git', '.gitattributes', '.gitignore', 'README.md', 'LICENSE',
-    'static', 'db.sqlite3',  'txt.py' 'migrations',
-    '.notes',
-    '_.ipynb', 'modules', 'env.examples',
-    'saida.txt'
-    ]
+    # Cache e ambientes virtuais
+    '__pycache__', 'venv', '.venv',
 
+    # Arquivos de configuração e dependências
+    '.env', 'requirements.txt',
+
+    # Controle de versão (Git)
+    '.git', '.gitattributes', '.gitignore',
+
+    # Arquivos estáticos e temporários
+    'static', '.notes', 'saida.txt',
+
+    # Arquivos e Pastas extras
+    '_.ipynb', 'txt.py', 'pdfs', 'modules', '_app', 'desenvolvimento'
+]
 # Listar arquivos
 arquivos_para_leitura = listar_arquivos(diretorio_root, ignorar)
 

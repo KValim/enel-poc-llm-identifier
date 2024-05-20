@@ -1,19 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Resultados da Validação</title>
+    <title>Validation Results</title>
     <meta charset="UTF-8">
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
+    <!-- Popper.js for Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/js/script.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center my-4">Resultados da Validação</h1>
-        
-        <h2 class="section-header">Itens Validados:</h2>
+        <!-- Page Header -->
+        <h1 class="text-center my-4">Validation Results</h1>
+
+        <!-- Validated Items Section -->
+        <h2 class="section-header">Validated Items:</h2>
         <ul class="list-group">
             {% for item, status in encontrados.items() %}
                 {% if status == 'Sim' %}
@@ -42,9 +51,11 @@
                 {% endif %}
             {% endfor %}
         </ul>
-        
-        <h2 class="section-header">Exceções Encontradas:</h2>
-        <h3 class="subsection-header">Deveria Existir:</h3>
+
+        <!-- Exceptions Found Section -->
+        <h2 class="section-header">Exceptions Found:</h2>
+        <!-- Should Exist Subsection -->
+        <h3 class="subsection-header">Should Exist:</h3>
         <ul class="list-group mb-4">
             {% for item, status in encontrados.items() %}
                 {% if status == 'Não' %}
@@ -54,8 +65,9 @@
                 {% endif %}
             {% endfor %}
         </ul>
-        
-        <h3 class="subsection-header">Encontrados Não Planejados:</h3>
+
+        <!-- Unplanned Found Items Subsection -->
+        <h3 class="subsection-header">Unplanned Found Items:</h3>
         <ul class="list-group mb-4">
             {% for item in extras %}
                 <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
@@ -77,34 +89,20 @@
                 {% endif %}
             {% endfor %}
         </ul>
-        
-        <form method="post" action="{{ url_for('results', project=project, post=post) }}">
+
+        <!-- Comments Form -->
+        <form method="post" action="{{ url_for('validation.results', project=project, post=post) }}">
             <div class="mb-3">
-                <label for="comments" class="form-label">Comentários:</label>
+                <label for="comments" class="form-label">Comments:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
             </div>
-            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
-            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger">Invalidar Estrutura</button>
-            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Retirar Foto</button>
+            <!-- Form Buttons -->
+            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validate Structure</button>
+            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger">Invalidate Structure</button>
+            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Remove Photo</button>
         </form>
+        <!-- Back to Home Link -->
         <a href="/" class="btn btn-link">Home</a>
     </div>
-    <script>
-        function toggleDetails(id) {
-            var details = document.getElementById("details-" + id);
-            var arrow = document.getElementById("arrow-" + id);
-            if (details.style.display === "none") {
-                details.style.display = "block";
-                if (arrow) {
-                    arrow.classList.add("arrow-down");
-                }
-            } else {
-                details.style.display = "none";
-                if (arrow) {
-                    arrow.classList.remove("arrow-down");
-                }
-            }
-        }
-    </script>
 </body>
 </html>

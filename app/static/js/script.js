@@ -17,14 +17,15 @@ function showSummary(project) {
     $.post('/project_summary', { project: project }, function(data) {
         var summary = JSON.parse(data);
         document.getElementById('project-summary').innerHTML = `
-            <h2>Project Summary</h2>
-            <p><strong>Evaluated Structures: ${summary.total_avaliadas}/${summary.total_estruturas}</strong></p>
-            <p>Total Valid Structures: ${summary.total_validas}</p>
-            <p>Total Invalid Structures: ${summary.total_invalidas}</p>
-            <p>Total Unvalidated Structures: ${summary.total_nao_validadas}</p>
+            <h2>Resumo do Projeto</h2>
+            <p><strong>Estruturas Avaliadas: ${summary.total_avaliadas}/${summary.total_estruturas}</strong></p>
+            <p>Total de Estruturas Válidadas: ${summary.total_validas}</p>
+            <p>Total de Estruturas Com Divergênca: ${summary.total_invalidas}</p>
+            <p>Total de Estruturas Não Avalidadas: ${summary.total_nao_validadas}</p>
+            <p>Total de Estruturas Extras: ${summary.total_extras}</p>
             <form id="validate-project-form" method="post" action="/validate_project">
                 <input type="hidden" name="project" id="selected-project" value="">
-                <button type="button" class="btn btn-success mt-3" onclick="validateProject()">Validate Project</button>
+                <button type="button" class="btn btn-success mt-3" onclick="validateProject()">Validar Projeto</button>
             </form>
         `;
     });
@@ -36,14 +37,14 @@ function showSummary(project) {
 function validateProject() {
     var selectedProject = document.getElementById('project').value;
     if (!selectedProject) {
-        alert("Please select a project first.");
+        alert("Por favor, selecione um projeto primeiro.");
         return;
     }
 
     $.post('/check_validation_status', { project: selectedProject }, function(data) {
         var result = JSON.parse(data);
         if (result.has_unvalidated_structures) {
-            var confirmValidation = confirm("There are unvalidated structures. Are you sure you want to validate the project?");
+            var confirmValidation = confirm("Existem estruturas não validadas.\nTem certeza que deseja validar o projeto?");
             if (confirmValidation) {
                 $('#validate-project-form').submit();
             }
@@ -100,7 +101,7 @@ function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(showPosition, showError);
     } else {
-        alert("Geolocation is not supported by this browser.");
+        alert("Geolocalização não é suportada por este navegador.");
     }
 }
 
@@ -121,16 +122,16 @@ function showPosition(position) {
 function showError(error) {
     switch(error.code) {
         case error.PERMISSION_DENIED:
-            alert("User denied the request for Geolocation.");
+            alert("Usuário negou o pedido para Geolocalização.");
             break;
         case error.POSITION_UNAVAILABLE:
-            alert("Location information is unavailable.");
+            alert("Informação de localização não disponível.");
             break;
         case error.TIMEOUT:
-            alert("The request to get user location timed out.");
+            alert("O pedido para obter a localização do usuário expirou.");
             break;
         case error.UNKNOWN_ERROR:
-            alert("An unknown error occurred.");
+            alert("Ocorreu um erro desconhecido.");
             break;
     }
 }

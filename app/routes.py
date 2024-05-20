@@ -291,7 +291,7 @@ def results():
                 'comments': comments
             }
             save_validation_data(validation_data)
-            flash('Estrutura invalidado. Retornando à seleção de estruturas.')
+            flash('Estrutura invalidada. Retornando à seleção de estruturas.')
             return redirect(url_for('validation.select_structure', project=project))
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')

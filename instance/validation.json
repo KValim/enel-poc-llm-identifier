@@ -6,22 +6,14 @@
                 "comments": ""
             },
             "Poste 2": {
+                "status": "invalid",
+                "comments": "Nao recebi a luminaria"
+            },
+            "Poste 3": {
                 "status": "valid",
                 "comments": ""
             },
-            "Poste 3": {
-                "status": "to_be_validated",
-                "comments": ""
-            },
             "Nova Estrutura 1": {
-                "status": "extra",
-                "comments": ""
-            },
-            "Nova Estrutura 2": {
-                "status": "extra",
-                "comments": ""
-            },
-            "Nova Estrutura 3": {
                 "status": "extra",
                 "comments": ""
             }
@@ -29,7 +21,7 @@
         "Projeto Y": {
             "Poste 4": {
                 "status": "valid",
-                "comments": "Testestes"
+                "comments": ""
             },
             "Poste 5": {
                 "status": "valid",
@@ -37,7 +29,7 @@
             },
             "Poste 6": {
                 "status": "invalid",
-                "comments": ""
+                "comments": "Comentário aqui"
             }
         },
         "": {}

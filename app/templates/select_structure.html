@@ -9,7 +9,7 @@
     <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
-<body>
+<body>    
     <div class="container">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages() %}
@@ -25,6 +25,16 @@
         <!-- Page Header -->
         <h1 class="text-center my-4">Estruturas do Projeto: {{ project }}</h1>
 
+        <form method="post">
+            <div class="mb-3">
+                <label for="side" class="form-label">Escolha o lado para começar a validação:</label>
+                <select name="side" id="side" class="form-select" required>
+                    <option value="A">Lado A - Inicio na Estrutra: {{ posts[0] }}</option>
+                    <option value="B">Lado B - Inicio na Estrutra: {{ posts[-1] }}</option>
+                </select>
+            </div>
+            <button type="submit" name="start_validation" class="btn btn-primary">Começar Validação</button>
+        </form>
         <!-- Structure Selection Form -->
         <div class="mb-3">
             <form method="post">

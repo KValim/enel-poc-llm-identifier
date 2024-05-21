@@ -1,29 +1,17 @@
 {
     "Itens Verificados": {
-        "Poste Elétrico": "Sim",
-        "Cruzeta": "Sim",
-        "Chave Seccionadora (Chave Faca)": "Sim",
-        "Transformador Trifásico": "Sim",
-        "Luminária": "Não",
-        "Transformador Monofásico": "Encontrado"
+        "Poste Elétrico": "Encontrado",
+        "Cruzeta": "Encontrado",
+        "Transformador Trifásico": "Encontrado",
+        "Luminária": "Encontrado"
     },
+    "Itens Extras": [],
     "Características": {
         "Poste Elétrico": {
             "Material": "Concreto",
-            "Estado de Conservação": "Novo",
-            "Quantidade Identificada": 1
-        },
-        "Cruzeta": {
-            "Quantidade Identificada": 1
-        },
-        "Chave Seccionadora (Chave Faca)": {
-            "Quantidade Identificada": 1
+            "Estado de Conservação": "Novo"
         },
         "Transformador Trifásico": {
-            "Nível de Oxidação": "Baixo",
-            "Quantidade Identificada": 1
-        },
-        "Transformador Monofásico": {
             "Nível de Oxidação": "Baixo"
         }
     }

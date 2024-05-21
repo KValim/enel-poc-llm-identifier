@@ -79,18 +79,8 @@
             }
         },
         "Nova Estrutura 1": {
-            "latitude": -23.664593,
-            "longitude": -46.534564,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 2": {
-            "latitude": -23.664567,
-            "longitude": -46.534555,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 3": {
-            "latitude": -23.664567,
-            "longitude": -46.534555,
+            "latitude": -23.664633,
+            "longitude": -46.534217,
             "Gabarito": {}
         }
     },

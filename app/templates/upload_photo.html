@@ -44,6 +44,7 @@
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
             <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
             <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
+            <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
             <!-- File Input -->
             <div class="mb-3">
                 <input type="file" class="form-control" name="photo" id="file-input" required onchange="previewImage();">

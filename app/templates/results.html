@@ -17,7 +17,7 @@
     <script src="/static/js/script.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div class="container">        
         <!-- Page Header -->
         <h1 class="text-center my-4">Resultados da Validação</h1>
 
@@ -111,7 +111,7 @@
         {% endif %}
 
         <!-- Comments Form -->
-        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude'), direction=request.args.get('direction')) }}">
             <div class="mb-3">
                 <label for="comments" class="form-label">Comentários:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>

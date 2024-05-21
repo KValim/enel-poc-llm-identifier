@@ -228,7 +228,8 @@ from .utils import (
     allowed_file, calculate_distance,
     generate_new_output_json, is_valid_latlong,
     load_project_data, load_validation_data,
-    save_validation_data, save_project_data
+    save_validation_data, save_project_data,
+    order_structures_by_latlong, get_next_post
     )
 
 load_dotenv()
@@ -293,15 +294,13 @@ def project_summary():
 
 @validation_bp.route('/select_structure', methods=['GET', 'POST'])
 def select_structure():
-    """
-    Route to select a structure within a project for validation.
-    Methods: GET, POST
-    """
-
     project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
     posts = list(project_data[project].keys())
+
+    # Excluir estruturas com status 'extra'
+    posts = [post for post in posts if validation_data['validations'][project].get(post, {}).get('status') != 'extra']
 
     if 'validations' not in validation_data:
         validation_data['validations'] = {}
@@ -316,44 +315,26 @@ def select_structure():
             }
     save_validation_data(validation_data)
 
-    estruturas_validadas = validation_data.get('validations', {}).get(project, {})
+    # Ordenar estruturas por lat long
+    ordered_posts = order_structures_by_latlong({post: project_data[project][post] for post in posts})
 
-    total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
-    total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
+    total_validas = sum(1 for estrutura in validation_data['validations'][project].values() if estrutura['status'] == 'valid')
+    total_invalidas = sum(1 for estrutura in validation_data['validations'][project].values() if estrutura['status'] == 'invalid')
     total_nao_validadas = len(posts) - total_validas - total_invalidas
 
     if request.method == 'POST':
-        if 'post' in request.form:
+        if 'start_validation' in request.form:
+            side = request.form['side']
+            if side == 'B':
+                ordered_posts = ordered_posts[::-1]  # Reverter a ordem dos posts para o lado B
+            first_post = ordered_posts[0]
+            direction = 'forward' if side == 'A' else 'backward'
+            return redirect(url_for('validation.upload_photo', project=project, post=first_post, direction=direction))
+        elif 'post' in request.form:
             selected_post = request.form['post']
             return redirect(url_for('validation.upload_photo', project=project, post=selected_post))
-        elif 'validate_project' in request.form:
-            return redirect(url_for('validation.validate_project', project=project))
-        elif 'get_location' in request.form:
-            user_lat = request.form['latitude']
-            user_lon = request.form['longitude']
 
-            if is_valid_latlong(user_lat, user_lon):
-                user_lat = float(user_lat)
-                user_lon = float(user_lon)
-
-                nearby_structures = []
-                for post in posts:
-                    if project_data[project][post]["latitude"] and project_data[project][post]["longitude"]:
-                        post_lat = project_data[project][post]["latitude"]
-                        post_lon = project_data[project][post]["longitude"]
-                        distance = calculate_distance(user_lat, user_lon, post_lat, post_lon)
-                        nearby_structures.append((post, distance))
-
-                nearby_structures.sort(key=lambda x: x[1])
-                nearby_posts = [post for post, _ in nearby_structures]
-
-                return render_template('select_structure.html', project=project, posts=nearby_posts, validadas=estruturas_validadas,
-                                       total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas)
-            else:
-                flash('Latitude ou longitude inválida. Por favor, insira valores corretos.')
-                return redirect(request.url)
-
-    return render_template('select_structure.html', project=project, posts=posts, validadas=estruturas_validadas,
+    return render_template('select_structure.html', project=project, posts=ordered_posts, validadas=validation_data['validations'][project],
                            total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas)
 
 @validation_bp.route('/validate_project', methods=['POST'])
@@ -396,41 +377,41 @@ def open_pdf():
 
 @validation_bp.route('/upload_photo', methods=['GET', 'POST'])
 def upload_photo():
-    """
-    Route to upload and validate a photo for a specific structure in a project.
-    Methods: GET, POST
-    """
     project = request.args.get('project')
     post = request.args.get('post')
+    direction = request.args.get('direction')
     new_structure = request.args.get('new_structure', False)
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
-    example_image = url_for('static', filename='images/photo-example.webp')  # Caminho da imagem de exemplo
+    example_image = url_for('static', filename='images/photo-example.webp')
     uploaded_image = None
 
     if request.method == 'POST':
+        # Check if a file is uploaded
         if 'photo' not in request.files:
-            flash('No file part')
+            flash('Nenhuma foto selecionada.')
             return redirect(request.url)
+
         file = request.files['photo']
+
         if file.filename == '':
-            flash('No selected file')
+            flash('Nenhuma foto selecionada.')
             return redirect(request.url)
+
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-
             # Cria o diretório 'static/uploads' se não existir
             upload_folder = os.path.join('app', 'static', 'uploads')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
 
             file_path = os.path.join(upload_folder, filename)
-            file.save(file_path)  # Salva a imagem no diretório 'static/uploads'
-            uploaded_image = url_for('static', filename='uploads/' + filename)  # Caminho da imagem enviada
+            file.save(file_path)
+            uploaded_image = url_for('static', filename=f'uploads/{filename}')
 
-            # Chame a função que gera o novo output.json antes de processá-lo
+            # Process the image using OpenAI API
             generate_new_output_json(file_path)
-
+            
             # Verifique o conteúdo do JSON de saída
             with open('instance/output.json', 'r', encoding='utf-8') as file:
                 output_data = file.read()  # Leia o conteúdo como string
@@ -443,10 +424,8 @@ def upload_photo():
                 flash('A imagem enviada não tem qualidade.')
                 return redirect(request.url)
 
-            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
-        else:
-            flash('Invalid file type. Only image files are allowed.')
-            return redirect(request.url)
+            # Redirect to results page after processing the image
+            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude, direction=direction))
 
     return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image)
 
@@ -460,7 +439,7 @@ def add_structure_to_project():
     post = request.args.get('post')
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
-    
+
     # Debugging statements
     print(f"Received latitude: {latitude}")
     print(f"Received longitude: {longitude}")
@@ -468,14 +447,14 @@ def add_structure_to_project():
     if not latitude or not longitude:
         flash('Latitude e Longitude são obrigatórias.')
         return redirect(url_for('validation.select_structure', project=project))
-    
+
     try:
         latitude = float(latitude)
         longitude = float(longitude)
     except ValueError:
         flash('Latitude e Longitude devem ser números válidos.')
         return redirect(url_for('validation.select_structure', project=project))
-    
+
     # Add the new structure to the project data
     project_data = load_project_data()
     if project not in project_data:
@@ -507,15 +486,12 @@ def add_structure_to_project():
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
 def results():
-    """
-    Route to display the validation results of a structure and handle validation actions.
-    Methods: GET, POST
-    """
     project = request.args.get('project')
     post = request.args.get('post')
     new_structure = request.args.get('new_structure', 'False').lower() == 'true'
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
+    direction = request.args.get('direction', 'forward')
 
     if request.method == 'POST':
         action = request.form['action']
@@ -546,7 +522,13 @@ def results():
                 flash('Nova estrutura validada e adicionada ao projeto com sucesso!')
             else:
                 flash('Estrutura validada com sucesso!')
-            return redirect(url_for('validation.select_structure', project=project))
+            next_post = get_next_post(project, post, direction)
+            if next_post:
+                return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
+            else:
+                flash('Todas as estruturas foram avaliadas.')
+                return redirect(url_for('main.home'))
+
         elif action == 'invalidate_post':
             validation_data['validations'][project][post] = {
                 'status': 'invalid',
@@ -554,10 +536,16 @@ def results():
             }
             save_validation_data(validation_data)
             flash('Estrutura invalidada. Retornando à seleção de estruturas.')
-            return redirect(url_for('validation.select_structure', project=project))
+            next_post = get_next_post(project, post, direction)
+            if next_post:
+                return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
+            else:
+                flash('Todas as estruturas foram avaliadas.')
+                return redirect(url_for('main.home'))
+
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')
-            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
+            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude, direction=direction))
 
     validation_data = load_validation_data()
     project_data = load_project_data()
@@ -922,6 +910,47 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
 
+def order_structures_by_latlong(structures):
+    """
+    Orders the structures based on their latitude and longitude.
+    
+    Args:
+        structures (dict): Dictionary of structures with their latitude and longitude.
+        
+    Returns:
+        list: List of structure names ordered by their latitude and longitude.
+    """
+    return sorted(structures, key=lambda x: (structures[x]['latitude'], structures[x]['longitude']))
+
+def get_next_post(project, current_post, direction='forward'):
+    validation_data = load_validation_data()
+    project_data = load_project_data()
+    posts = list(project_data[project].keys())
+    
+    # Excluir estruturas com status 'extra'
+    posts = [post for post in posts if validation_data['validations'][project].get(post, {}).get('status') != 'extra']
+
+    if direction == 'forward':
+        ordered_posts = order_structures_by_latlong({post: project_data[project][post] for post in posts})
+    else:
+        ordered_posts = order_structures_by_latlong({post: project_data[project][post] for post in posts})
+        ordered_posts = ordered_posts[::-1]
+    current_index = ordered_posts.index(current_post)
+    
+    print(f"Current post: {current_post}")
+    print(f"Ordered posts: {ordered_posts}")
+    print(f"Current index: {current_index}")
+
+    
+    next_index = current_index + 1
+
+    print(f"Next index: {next_index}")
+
+    if 0 <= next_index < len(ordered_posts):
+        return ordered_posts[next_index]
+    else:
+        # Quando não há mais postes na direção escolhida, retornar None
+        return None
 ```
 
 __init__.py
@@ -1078,10 +1107,10 @@ error.html
 <body>
     <div class="container">
         <!-- Error Message -->
-        <h1 class="text-center my-4">Error: File Not Found</h1>
-        <p>The requested PDF file could not be found. Please check the file name and try again.</p>
+        <h1 class="text-center my-4">Erro: Arquivo Não Encontrado</h1>
+        <p>O arquivo PDF solicitado não pôde ser encontrado. Por favor, verifique o nome do arquivo e tente novamente.</p>
         <!-- Back to Home Button -->
-        <a href="/" class="btn btn-primary">Back to Home Page</a>
+        <a href="/" class="btn btn-primary">Voltar para a Página Inicial</a>
     </div>
 </body>
 </html>
@@ -1143,99 +1172,6 @@ home.html
 
 ```
 
-new_results.html
-```
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Resultados da Nova Estrutura</title>
-    <meta charset="UTF-8">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="/static/css/style.css" rel="stylesheet">
-    <!-- Popper.js for Bootstrap -->
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Custom JavaScript -->
-    <script src="/static/js/script.js"></script>
-</head>
-<body>
-    <div class="container">
-        <!-- Page Header -->
-        <h1 class="text-center my-4">Itens Encontrados</h1>
-
-        <!-- Found Items Section -->
-        <h2 class="section-header">Itens Encontrados:</h2>
-        <ul class="list-group">
-            {% for item, status in encontrados.items() %}
-                {% if status == 'Sim' %}
-                    <li class="list-group-item item-sim" id="item-{{ loop.index }}" onclick="toggleDetails({{ loop.index }})">
-                        <span>{{ item }}: <i class="icon-sim">✓</i></span>
-                        {% if item in caracteristicas %}
-                            <span class="arrow" id="arrow-{{ loop.index }}">&#8250;</span>
-                        {% else %}
-                            <span class="minus">&#8211;</span>
-                        {% endif %}
-                    </li>
-                    {% if item in caracteristicas %}
-                        <div id="details-{{ loop.index }}" class="details">
-                            <ul>
-                                {% for caract, valor in caracteristicas[item].items() %}
-                                    {% if caract != 'Quantidade Identificada' %}
-                                        <li>{{ caract }}: {{ valor }}</li>
-                                    {% endif %}
-                                {% endfor %}
-                                {% if item != 'Quantidades' and caracteristicas[item].get('Quantidade Identificada') %}
-                                    <li>Quantidade Identificada: {{ caracteristicas[item]['Quantidade Identificada'] }}</li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-        </ul>
-
-        <!-- Comments Form -->
-        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post) }}">
-            <div class="mb-3">
-                <label for="comments" class="form-label">Comentários:</label>
-                <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
-            </div>
-            <!-- Form Buttons -->
-            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
-            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
-            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Tirar Nova Foto</button>
-            <button type="submit" name="action" value="add_new_structure" class="btn btn-secondary">Adicionar Nova Estrutura</button>
-        </form>
-        <!-- Back to Home Link -->
-        <a href="/" class="btn btn-link">Home</a>
-    </div>
-
-    <!-- Initialize Bootstrap Tooltip -->
-    <script>
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-
-        // Disable invalidate button if comments are empty
-        document.getElementById('validationForm').addEventListener('submit', function(event) {
-            var comments = document.getElementById('comments').value.trim();
-            if (event.submitter && event.submitter.name === 'action' && event.submitter.value === 'invalidate_post' && comments === '') {
-                event.preventDefault();
-                alert('Por favor, comente o motivo da divergência antes de confirmar.');
-            }
-        });
-    </script>
-</body>
-</html>
-
-```
-
 results.html
 ```
 <!DOCTYPE html>
@@ -1257,7 +1193,7 @@ results.html
     <script src="/static/js/script.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div class="container">        
         <!-- Page Header -->
         <h1 class="text-center my-4">Resultados da Validação</h1>
 
@@ -1351,7 +1287,7 @@ results.html
         {% endif %}
 
         <!-- Comments Form -->
-        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude'), direction=request.args.get('direction')) }}">
             <div class="mb-3">
                 <label for="comments" class="form-label">Comentários:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
@@ -1406,7 +1342,7 @@ select_structure.html
     <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
-<body>
+<body>    
     <div class="container">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages() %}
@@ -1422,6 +1358,16 @@ select_structure.html
         <!-- Page Header -->
         <h1 class="text-center my-4">Estruturas do Projeto: {{ project }}</h1>
 
+        <form method="post">
+            <div class="mb-3">
+                <label for="side" class="form-label">Escolha o lado para começar a validação:</label>
+                <select name="side" id="side" class="form-select" required>
+                    <option value="A">Lado A - Inicio na Estrutra: {{ posts[0] }}</option>
+                    <option value="B">Lado B - Inicio na Estrutra: {{ posts[-1] }}</option>
+                </select>
+            </div>
+            <button type="submit" name="start_validation" class="btn btn-primary">Começar Validação</button>
+        </form>
         <!-- Structure Selection Form -->
         <div class="mb-3">
             <form method="post">
@@ -1537,6 +1483,7 @@ upload_photo.html
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
             <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
             <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
+            <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
             <!-- File Input -->
             <div class="mb-3">
                 <input type="file" class="form-control" name="photo" id="file-input" required onchange="previewImage();">
@@ -1561,14 +1508,36 @@ upload_photo.html
 output.json
 ```
 {
-    "mensagem": "Imagem não relacionada."
+    "Poste Elétrico": true,
+    "Cruzeta": true,
+    "Transformador Monofásico": true,
+    "Luminária": true,
+    "Chave Seccionadora (Chave Faca)": true,
+    "Quantidades": {
+        "Poste Elétrico": 1,
+        "Cruzeta": 1,
+        "Transformador Monofásico": 2,
+        "Luminária": 1,
+        "Chave Seccionadora (Chave Faca)": 2
+    }
 }
 ```
 
 output.txt
 ```
 {
-  "mensagem": "Imagem não relacionada."
+  "Poste Elétrico": true,
+  "Cruzeta": true,
+  "Transformador Monofásico": true,
+  "Luminária": true,
+  "Chave Seccionadora (Chave Faca)": true,
+  "Quantidades": {
+    "Poste Elétrico": 1,
+    "Cruzeta": 1,
+    "Transformador Monofásico": 2,
+    "Luminária": 1,
+    "Chave Seccionadora (Chave Faca)": 2
+  }
 }
 ```
 
@@ -1653,21 +1622,6 @@ projetos.json
                     "Quantidade": 1
                 }
             }
-        },
-        "Nova Estrutura 1": {
-            "latitude": -23.664593,
-            "longitude": -46.534564,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 2": {
-            "latitude": -23.664567,
-            "longitude": -46.534555,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 3": {
-            "latitude": -23.664567,
-            "longitude": -46.534555,
-            "Gabarito": {}
         }
     },
     "Projeto Y": {
@@ -1748,6 +1702,11 @@ projetos.json
                     "Quantidade": 1
                 }
             }
+        },
+        "Nova Estrutura 3": {
+            "latitude": -23.664593,
+            "longitude": -46.534564,
+            "Gabarito": {}
         }
     }
 }
@@ -1760,28 +1719,25 @@ results.json
         "Poste Elétrico": "Sim",
         "Cruzeta": "Sim",
         "Chave Seccionadora (Chave Faca)": "Sim",
-        "Transformador Trifásico": "Sim",
-        "Luminária": "Não",
-        "Transformador Monofásico": "Encontrado"
+        "Transformador Trifásico": "Não",
+        "Transformador Monofásico": "Sim",
+        "Luminária": "Sim"
     },
     "Características": {
         "Poste Elétrico": {
-            "Material": "Concreto",
-            "Estado de Conservação": "Novo",
             "Quantidade Identificada": 1
         },
         "Cruzeta": {
             "Quantidade Identificada": 1
         },
         "Chave Seccionadora (Chave Faca)": {
-            "Quantidade Identificada": 1
-        },
-        "Transformador Trifásico": {
-            "Nível de Oxidação": "Baixo",
-            "Quantidade Identificada": 1
+            "Quantidade Identificada": 2
         },
         "Transformador Monofásico": {
-            "Nível de Oxidação": "Baixo"
+            "Quantidade Identificada": 2
+        },
+        "Luminária": {
+            "Quantidade Identificada": 1
         }
     }
 }
@@ -1801,19 +1757,7 @@ validation.json
                 "comments": ""
             },
             "Poste 3": {
-                "status": "to_be_validated",
-                "comments": ""
-            },
-            "Nova Estrutura 1": {
-                "status": "extra",
-                "comments": ""
-            },
-            "Nova Estrutura 2": {
-                "status": "extra",
-                "comments": ""
-            },
-            "Nova Estrutura 3": {
-                "status": "extra",
+                "status": "valid",
                 "comments": ""
             }
         },
@@ -1828,6 +1772,10 @@ validation.json
             },
             "Poste 6": {
                 "status": "invalid",
+                "comments": ""
+            },
+            "Nova Estrutura 3": {
+                "status": "extra",
                 "comments": ""
             }
         },

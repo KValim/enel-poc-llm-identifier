@@ -38,7 +38,8 @@ from .utils import (
     allowed_file, calculate_distance,
     generate_new_output_json, is_valid_latlong,
     load_project_data, load_validation_data,
-    save_validation_data, save_project_data
+    save_validation_data, save_project_data,
+    order_structures_by_latlong, get_next_post
     )
 
 load_dotenv()
@@ -103,15 +104,13 @@ def project_summary():
 
 @validation_bp.route('/select_structure', methods=['GET', 'POST'])
 def select_structure():
-    """
-    Route to select a structure within a project for validation.
-    Methods: GET, POST
-    """
-
     project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
     posts = list(project_data[project].keys())
+
+    # Excluir estruturas com status 'extra'
+    posts = [post for post in posts if validation_data['validations'][project].get(post, {}).get('status') != 'extra']
 
     if 'validations' not in validation_data:
         validation_data['validations'] = {}
@@ -126,44 +125,26 @@ def select_structure():
             }
     save_validation_data(validation_data)
 
-    estruturas_validadas = validation_data.get('validations', {}).get(project, {})
+    # Ordenar estruturas por lat long
+    ordered_posts = order_structures_by_latlong({post: project_data[project][post] for post in posts})
 
-    total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
-    total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
+    total_validas = sum(1 for estrutura in validation_data['validations'][project].values() if estrutura['status'] == 'valid')
+    total_invalidas = sum(1 for estrutura in validation_data['validations'][project].values() if estrutura['status'] == 'invalid')
     total_nao_validadas = len(posts) - total_validas - total_invalidas
 
     if request.method == 'POST':
-        if 'post' in request.form:
+        if 'start_validation' in request.form:
+            side = request.form['side']
+            if side == 'B':
+                ordered_posts = ordered_posts[::-1]  # Reverter a ordem dos posts para o lado B
+            first_post = ordered_posts[0]
+            direction = 'forward' if side == 'A' else 'backward'
+            return redirect(url_for('validation.upload_photo', project=project, post=first_post, direction=direction))
+        elif 'post' in request.form:
             selected_post = request.form['post']
             return redirect(url_for('validation.upload_photo', project=project, post=selected_post))
-        elif 'validate_project' in request.form:
-            return redirect(url_for('validation.validate_project', project=project))
-        elif 'get_location' in request.form:
-            user_lat = request.form['latitude']
-            user_lon = request.form['longitude']
 
-            if is_valid_latlong(user_lat, user_lon):
-                user_lat = float(user_lat)
-                user_lon = float(user_lon)
-
-                nearby_structures = []
-                for post in posts:
-                    if project_data[project][post]["latitude"] and project_data[project][post]["longitude"]:
-                        post_lat = project_data[project][post]["latitude"]
-                        post_lon = project_data[project][post]["longitude"]
-                        distance = calculate_distance(user_lat, user_lon, post_lat, post_lon)
-                        nearby_structures.append((post, distance))
-
-                nearby_structures.sort(key=lambda x: x[1])
-                nearby_posts = [post for post, _ in nearby_structures]
-
-                return render_template('select_structure.html', project=project, posts=nearby_posts, validadas=estruturas_validadas,
-                                       total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas)
-            else:
-                flash('Latitude ou longitude inválida. Por favor, insira valores corretos.')
-                return redirect(request.url)
-
-    return render_template('select_structure.html', project=project, posts=posts, validadas=estruturas_validadas,
+    return render_template('select_structure.html', project=project, posts=ordered_posts, validadas=validation_data['validations'][project],
                            total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas)
 
 @validation_bp.route('/validate_project', methods=['POST'])
@@ -206,41 +187,41 @@ def open_pdf():
 
 @validation_bp.route('/upload_photo', methods=['GET', 'POST'])
 def upload_photo():
-    """
-    Route to upload and validate a photo for a specific structure in a project.
-    Methods: GET, POST
-    """
     project = request.args.get('project')
     post = request.args.get('post')
+    direction = request.args.get('direction')
     new_structure = request.args.get('new_structure', False)
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
-    example_image = url_for('static', filename='images/photo-example.webp')  # Caminho da imagem de exemplo
+    example_image = url_for('static', filename='images/photo-example.webp')
     uploaded_image = None
 
     if request.method == 'POST':
+        # Check if a file is uploaded
         if 'photo' not in request.files:
-            flash('No file part')
+            flash('Nenhuma foto selecionada.')
             return redirect(request.url)
+
         file = request.files['photo']
+
         if file.filename == '':
-            flash('No selected file')
+            flash('Nenhuma foto selecionada.')
             return redirect(request.url)
+
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-
             # Cria o diretório 'static/uploads' se não existir
             upload_folder = os.path.join('app', 'static', 'uploads')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
 
             file_path = os.path.join(upload_folder, filename)
-            file.save(file_path)  # Salva a imagem no diretório 'static/uploads'
-            uploaded_image = url_for('static', filename='uploads/' + filename)  # Caminho da imagem enviada
+            file.save(file_path)
+            uploaded_image = url_for('static', filename=f'uploads/{filename}')
 
-            # Chame a função que gera o novo output.json antes de processá-lo
+            # Process the image using OpenAI API
             generate_new_output_json(file_path)
-
+            
             # Verifique o conteúdo do JSON de saída
             with open('instance/output.json', 'r', encoding='utf-8') as file:
                 output_data = file.read()  # Leia o conteúdo como string
@@ -253,11 +234,12 @@ def upload_photo():
                 flash('A imagem enviada não tem qualidade.')
                 return redirect(request.url)
 
-            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
-        else:
-            flash('Invalid file type. Only image files are allowed.')
-            return redirect(request.url)
+            # Redirect to results page after processing the image
+            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude, direction=direction))
 
+        else:
+            flash('Formato de arquivo inválido. Apenas imagens são permitidas.')
+            return redirect(request.url)
     return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image)
 
 @validation_bp.route('/add_structure_to_project', methods=['POST'])
@@ -270,7 +252,7 @@ def add_structure_to_project():
     post = request.args.get('post')
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
-    
+
     # Debugging statements
     print(f"Received latitude: {latitude}")
     print(f"Received longitude: {longitude}")
@@ -278,14 +260,14 @@ def add_structure_to_project():
     if not latitude or not longitude:
         flash('Latitude e Longitude são obrigatórias.')
         return redirect(url_for('validation.select_structure', project=project))
-    
+
     try:
         latitude = float(latitude)
         longitude = float(longitude)
     except ValueError:
         flash('Latitude e Longitude devem ser números válidos.')
         return redirect(url_for('validation.select_structure', project=project))
-    
+
     # Add the new structure to the project data
     project_data = load_project_data()
     if project not in project_data:
@@ -317,15 +299,12 @@ def add_structure_to_project():
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
 def results():
-    """
-    Route to display the validation results of a structure and handle validation actions.
-    Methods: GET, POST
-    """
     project = request.args.get('project')
     post = request.args.get('post')
     new_structure = request.args.get('new_structure', 'False').lower() == 'true'
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
+    direction = request.args.get('direction', 'forward')
 
     if request.method == 'POST':
         action = request.form['action']
@@ -356,7 +335,13 @@ def results():
                 flash('Nova estrutura validada e adicionada ao projeto com sucesso!')
             else:
                 flash('Estrutura validada com sucesso!')
-            return redirect(url_for('validation.select_structure', project=project))
+            next_post = get_next_post(project, post, direction)
+            if next_post:
+                return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
+            else:
+                flash('Todas as estruturas foram avaliadas.')
+                return redirect(url_for('main.home'))
+
         elif action == 'invalidate_post':
             validation_data['validations'][project][post] = {
                 'status': 'invalid',
@@ -364,10 +349,16 @@ def results():
             }
             save_validation_data(validation_data)
             flash('Estrutura invalidada. Retornando à seleção de estruturas.')
-            return redirect(url_for('validation.select_structure', project=project))
+            next_post = get_next_post(project, post, direction)
+            if next_post:
+                return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
+            else:
+                flash('Todas as estruturas foram avaliadas.')
+                return redirect(url_for('main.home'))
+
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')
-            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
+            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude, direction=direction))
 
     validation_data = load_validation_data()
     project_data = load_project_data()
@@ -377,7 +368,8 @@ def results():
 
     encontrados = {}
     caracteristicas = {}
-
+    extras = {}
+    
     if new_structure:
         for item in output:
             if not item.startswith('Características do') and item != "Quantidades":
@@ -404,20 +396,21 @@ def results():
 
         for item in output:
             if item not in gabarito and not item.startswith('Características do') and item != "Quantidades":
-                encontrados[item] = "Encontrado"
+                extras[item] = "Encontrado"
                 caracteristicas_item = output.get(f"Características do {item}", {})
                 if caracteristicas_item:
                     caracteristicas[item] = caracteristicas_item
 
     results_data = {
         'Itens Verificados': encontrados,
+        'Itens Extras': list(extras.keys()),
         'Características': caracteristicas
     }
 
     with open('instance/results.json', 'w', encoding='utf-8') as file:
         json.dump(results_data, file, ensure_ascii=False, indent=4)
 
-    return render_template('results.html', encontrados=encontrados, caracteristicas=caracteristicas, project=project, post=post, new_structure=new_structure)
+    return render_template('results.html', encontrados=encontrados, extras=extras, caracteristicas=caracteristicas, project=project, post=post, new_structure=new_structure)
 
 
 @validation_bp.route('/check_validation_status', methods=['POST'])

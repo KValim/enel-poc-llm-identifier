@@ -22,10 +22,10 @@
         <h1 class="text-center my-4">Resultados da Validação</h1>
 
         <!-- Validated Items Section -->
-        <h2 class="section-header">Itens Validados:</h2>
-        <ul class="list-group">
-            {% for item, status in encontrados.items() %}
-                {% if status == 'Sim' %}
+        {% if new_structure %}
+            <h2 class="section-header">Itens Verificados:</h2>
+            <ul class="list-group">
+                {% for item, status in encontrados.items() %}
                     <li class="list-group-item item-sim" id="item-{{ loop.index }}" onclick="toggleDetails({{ loop.index }})">
                         <span>{{ item }}: <i class="icon-sim">✓</i></span>
                         {% if item in caracteristicas %}
@@ -38,71 +38,98 @@
                         <div id="details-{{ loop.index }}" class="details">
                             <ul>
                                 {% for caract, valor in caracteristicas[item].items() %}
-                                    {% if caract != 'Quantidade Identificada' %}
-                                        <li>{{ caract }}: {{ valor }}</li>
-                                    {% endif %}
+                                    <li>{{ caract }}: {{ valor }}</li>
                                 {% endfor %}
-                                {% if item != 'Quantidades' and caracteristicas[item].get('Quantidade Identificada') %}
-                                    <li>Quantidade Identificada: {{ caracteristicas[item]['Quantidade Identificada'] }}</li>
-                                {% endif %}
                             </ul>
                         </div>
                     {% endif %}
-                {% endif %}
-            {% endfor %}
-        </ul>
-
-        <!-- Exceptions Found Section -->
-        <h2 class="section-header">Exceções Encontradas:</h2>
-        <!-- Should Exist Subsection -->
-        <h3 class="subsection-header">Deveriam Existir:</h3>
-        <ul class="list-group mb-4">
-            {% for item, status in encontrados.items() %}
-                {% if status == 'Não' %}
-                    <li class="list-group-item item-nao">
-                        <span>{{ item }}: <i class="icon-nao">✗</i></span>
-                    </li>
-                {% endif %}
-            {% endfor %}
-        </ul>
-
-        <!-- Unplanned Found Items Subsection -->
-        <h3 class="subsection-header">Itens Encontrados Não Planejados:</h3>
-        <ul class="list-group mb-4">
-            {% for item in extras %}
-                <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
-                    <span>{{ item }}</span>
-                    {% if item in caracteristicas %}
-                        <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
-                    {% else %}
-                        <span class="minus">&#8211;</span>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <h2 class="section-header">Itens Verificados:</h2>
+            <ul class="list-group">
+                {% for item, status in encontrados.items() %}
+                    {% if status == 'Sim' %}
+                        <li class="list-group-item item-sim" id="item-{{ loop.index }}" onclick="toggleDetails({{ loop.index }})">
+                            <span>{{ item }}: <i class="icon-sim">✓</i></span>
+                            {% if item in caracteristicas %}
+                                <span class="arrow" id="arrow-{{ loop.index }}">&#8250;</span>
+                            {% else %}
+                                <span class="minus">&#8211;</span>
+                            {% endif %}
+                        </li>
+                        {% if item in caracteristicas %}
+                            <div id="details-{{ loop.index }}" class="details">
+                                <ul>
+                                    {% for caract, valor in caracteristicas[item].items() %}
+                                        <li>{{ caract }}: {{ valor }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
                     {% endif %}
-                </li>
-                {% if item in caracteristicas %}
-                    <div id="details-extra-{{ loop.index }}" class="details">
-                        <ul>
-                            {% for caract, valor in caracteristicas[item].items() %}
-                                <li>{{ caract }}: {{ valor }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </ul>
+                {% endfor %}
+            </ul>
+
+            <!-- Exceptions Found Section -->
+            <h2 class="section-header">Exceções Encontradas:</h2>
+            <!-- Should Exist Subsection -->
+            <h3 class="subsection-header">Deveriam Existir:</h3>
+            <ul class="list-group mb-4">
+                {% for item, status in encontrados.items() %}
+                    {% if status == 'Não' %}
+                        <li class="list-group-item item-nao">
+                            <span>{{ item }}: <i class="icon-nao">✗</i></span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+            <!-- Unplanned Found Items Subsection -->
+            <h3 class="subsection-header">Itens Encontrados Não Planejados:</h3>
+            <ul class="list-group mb-4">
+                {% for item in extras %}
+                    <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
+                        <span>{{ item }}</span>
+                        {% if item in caracteristicas %}
+                            <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
+                        {% else %}
+                            <span class="minus">&#8211;</span>
+                        {% endif %}
+                    </li>
+                    {% if item in caracteristicas %}
+                        <div id="details-extra-{{ loop.index }}" class="details">
+                            <ul>
+                                {% for caract, valor in caracteristicas[item].items() %}
+                                    <li>{{ caract }}: {{ valor }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endif %}
 
         <!-- Comments Form -->
-        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post) }}">
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
             <div class="mb-3">
                 <label for="comments" class="form-label">Comentários:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
             </div>
             <!-- Form Buttons -->
-            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
-            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
+            {% if not new_structure %}
+                <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
+                <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
+            {% endif %}
             <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Tirar Nova Foto</button>
         </form>
+        {% if new_structure %}
+            <form id="addStructureForm" method="post" action="{{ url_for('validation.add_structure_to_project', project=project, post=post, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
+                <button type="submit" class="btn btn-secondary">Adicionar Nova Estrutura Ao Projeto</button>
+            </form>
+        {% endif %}
         <!-- Back to Home Link -->
-        <a href="/" class="btn btn-link">Home</a>
+        <a href="/" class="btn btn-link mt-4">Voltar para Seleção de Projetos</a>
     </div>
 
     <!-- Initialize Bootstrap Tooltip -->

@@ -228,7 +228,7 @@ from .utils import (
     allowed_file, calculate_distance,
     generate_new_output_json, is_valid_latlong,
     load_project_data, load_validation_data,
-    save_validation_data
+    save_validation_data, save_project_data
     )
 
 load_dotenv()
@@ -273,18 +273,20 @@ def project_summary():
     estruturas_validadas = validation_data.get('validations', {}).get(selected_project, {})
     posts = list(project_data[selected_project].keys())
 
+    total_extras = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'extra')
     total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
     total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
-    total_nao_validadas = len(posts) - total_validas - total_invalidas
-    total_avaliadas = total_validas + total_invalidas
-    total_estruturas = len(posts)
+    total_nao_validadas = len(posts) - total_validas - total_invalidas - total_extras
+    total_avaliadas = total_validas + total_invalidas + total_extras
+    total_estruturas = len(posts)-total_extras
 
     resumo = {
         'total_validas': total_validas,
         'total_invalidas': total_invalidas,
         'total_nao_validadas': total_nao_validadas,
         'total_avaliadas': total_avaliadas,
-        'total_estruturas': total_estruturas
+        'total_estruturas': total_estruturas,
+        'total_extras': total_extras
     }
 
     return json.dumps(resumo)
@@ -309,7 +311,7 @@ def select_structure():
     for post in posts:
         if post not in validation_data['validations'][project]:
             validation_data['validations'][project][post] = {
-                'status': 'to_be_valided',
+                'status': 'to_be_validated',
                 'comments': ''
             }
     save_validation_data(validation_data)
@@ -398,9 +400,11 @@ def upload_photo():
     Route to upload and validate a photo for a specific structure in a project.
     Methods: GET, POST
     """
-
     project = request.args.get('project')
     post = request.args.get('post')
+    new_structure = request.args.get('new_structure', False)
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
     example_image = url_for('static', filename='images/photo-example.webp')  # Caminho da imagem de exemplo
     uploaded_image = None
 
@@ -439,13 +443,66 @@ def upload_photo():
                 flash('A imagem enviada não tem qualidade.')
                 return redirect(request.url)
 
-            return redirect(url_for('validation.results', project=project, post=post))
+            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
         else:
             flash('Invalid file type. Only image files are allowed.')
             return redirect(request.url)
 
     return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image)
 
+@validation_bp.route('/add_structure_to_project', methods=['POST'])
+def add_structure_to_project():
+    """
+    Route to add the new structure to the project.
+    Methods: POST
+    """
+    project = request.args.get('project')
+    post = request.args.get('post')
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
+    
+    # Debugging statements
+    print(f"Received latitude: {latitude}")
+    print(f"Received longitude: {longitude}")
+
+    if not latitude or not longitude:
+        flash('Latitude e Longitude são obrigatórias.')
+        return redirect(url_for('validation.select_structure', project=project))
+    
+    try:
+        latitude = float(latitude)
+        longitude = float(longitude)
+    except ValueError:
+        flash('Latitude e Longitude devem ser números válidos.')
+        return redirect(url_for('validation.select_structure', project=project))
+    
+    # Add the new structure to the project data
+    project_data = load_project_data()
+    if project not in project_data:
+        project_data[project] = {}
+    if post not in project_data[project]:
+        project_data[project][post] = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "Gabarito": {}
+        }
+        save_project_data(project_data)
+
+        # Add the new structure to the validation data
+        validation_data = load_validation_data()
+        if 'validations' not in validation_data:
+            validation_data['validations'] = {}
+        if project not in validation_data['validations']:
+            validation_data['validations'][project] = {}
+        validation_data['validations'][project][post] = {
+            'status': 'extra',
+            'comments': ''
+        }
+        save_validation_data(validation_data)
+
+        flash(f'Nova estrutura "{post}" adicionada com sucesso ao projeto "{project}"!')
+
+    return redirect(url_for('validation.select_structure', project=project))
 
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
@@ -454,18 +511,22 @@ def results():
     Route to display the validation results of a structure and handle validation actions.
     Methods: GET, POST
     """
-
     project = request.args.get('project')
     post = request.args.get('post')
+    new_structure = request.args.get('new_structure', 'False').lower() == 'true'
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
 
     if request.method == 'POST':
         action = request.form['action']
         comments = request.form.get('comments', '')
         validation_data = load_validation_data()
+        project_data = load_project_data()
+
         if 'validations' not in validation_data:
             validation_data['validations'] = {}
         if project not in validation_data['validations']:
-            validation_data['validations'] = {}
+            validation_data['validations'][project] = {}
 
         if action == 'validate_post':
             validation_data['validations'][project][post] = {
@@ -473,7 +534,18 @@ def results():
                 'comments': comments
             }
             save_validation_data(validation_data)
-            flash('Estrutura validado com sucesso!')
+            if new_structure:
+                if project not in project_data:
+                    project_data[project] = {}
+                project_data[project][post] = {
+                    "latitude": float(latitude),
+                    "longitude": float(longitude),
+                    "Gabarito": {}
+                }
+                save_project_data(project_data)
+                flash('Nova estrutura validada e adicionada ao projeto com sucesso!')
+            else:
+                flash('Estrutura validada com sucesso!')
             return redirect(url_for('validation.select_structure', project=project))
         elif action == 'invalidate_post':
             validation_data['validations'][project][post] = {
@@ -481,52 +553,62 @@ def results():
                 'comments': comments
             }
             save_validation_data(validation_data)
-            flash('Estrutura invalidado. Retornando à seleção de estruturas.')
+            flash('Estrutura invalidada. Retornando à seleção de estruturas.')
             return redirect(url_for('validation.select_structure', project=project))
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')
-            return redirect(url_for('validation.upload_photo', project=project, post=post))
+            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
 
+    validation_data = load_validation_data()
     project_data = load_project_data()
-    gabarito = project_data[project][post]['Gabarito']
 
     with open('instance/output.json', 'r', encoding='utf-8') as file:
         output = json.load(file)
 
     encontrados = {}
-    extras = {}
     caracteristicas = {}
 
-    for item, _ in gabarito.items():
-        if item in output:
-            encontrados[item] = "Sim"
-            caracteristicas_item = output.get(f"Características do {item}", {})
-            if caracteristicas_item:
-                caracteristicas[item] = caracteristicas_item
-            if 'Quantidades' in output and item in output['Quantidades']:
-                if item in caracteristicas:
-                    caracteristicas[item]['Quantidade Identificada'] = output['Quantidades'][item]
-                else:
-                    caracteristicas[item] = {'Quantidade Identificada': output['Quantidades'][item]}
-        else:
-            encontrados[item] = "Não"
+    if new_structure:
+        for item in output:
+            if not item.startswith('Características do') and item != "Quantidades":
+                encontrados[item] = "Encontrado"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
+    else:
+        gabarito = project_data[project][post]['Gabarito']
 
-    for item in output:
-        if item not in gabarito and not item.startswith('Características do') and item != "Quantidades":
-            extras[item] = "Encontrado"
-            caracteristicas_item = output.get(f"Características do {item}", {})
-            if caracteristicas_item:
-                caracteristicas[item] = caracteristicas_item
+        for item, _ in gabarito.items():
+            if item in output:
+                encontrados[item] = "Sim"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
+                if 'Quantidades' in output and item in output['Quantidades']:
+                    if item in caracteristicas:
+                        caracteristicas[item]['Quantidade Identificada'] = output['Quantidades'][item]
+                    else:
+                        caracteristicas[item] = {'Quantidade Identificada': output['Quantidades'][item]}
+            else:
+                encontrados[item] = "Não"
+
+        for item in output:
+            if item not in gabarito and not item.startswith('Características do') and item != "Quantidades":
+                encontrados[item] = "Encontrado"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
 
     results_data = {
         'Itens Verificados': encontrados,
-        'Itens Extras': list(extras.keys()),
         'Características': caracteristicas
     }
+
     with open('instance/results.json', 'w', encoding='utf-8') as file:
         json.dump(results_data, file, ensure_ascii=False, indent=4)
 
-    return render_template('results.html', encontrados=encontrados, extras=extras, caracteristicas=caracteristicas, project=project, post=post)
+    return render_template('results.html', encontrados=encontrados, caracteristicas=caracteristicas, project=project, post=post, new_structure=new_structure)
+
 
 @validation_bp.route('/check_validation_status', methods=['POST'])
 def check_validation_status():
@@ -542,6 +624,28 @@ def check_validation_status():
     has_unvalidated_structures = any(estrutura['status'] == 'to_be_validated' for estrutura in estruturas_validadas.values())
 
     return json.dumps({'has_unvalidated_structures': has_unvalidated_structures})
+
+@validation_bp.route('/add_new_structure', methods=['GET', 'POST'])
+def add_new_structure():
+    """
+    Route to add a new structure to the project.
+    Methods: GET, POST
+    """
+    project = request.args.get('project')
+
+    if request.method == 'POST':
+        new_structure = request.form.get('new_structure')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+
+        if not new_structure or not latitude or not longitude:
+            flash('Todos os campos são obrigatórios.')
+            return redirect(url_for('validation.add_new_structure', project=project))
+
+        flash(f'Nova estrutura "{new_structure}" iniciando validação!')
+        return redirect(url_for('validation.upload_photo', project=project, post=new_structure, new_structure=True, latitude=latitude, longitude=longitude))
+
+    return render_template('add_new_structure.html', project=project)
 
 ```
 
@@ -727,7 +831,6 @@ def generate_new_output_json(image_path):
   "Religador": "Indica a presença (true) ou ausência (false) de um religador no poste.",
   "Medidor de Energia": "Indica a presença (true) ou ausência (false) de um medidor de energia no poste.",
   "Luminária": "Indica a presença (true) ou ausência (false) de uma luminária no poste.",
-  "Árvore": "Indica a presença (true) ou ausência (false) de árvores nas proximidades do poste.",
   "Características do Transformador Monofásico": {
     "Nível de Oxidação": "Descreve o nível de oxidação observado no transformador, podendo ser Baixo, Médio ou Alto.",
   },
@@ -738,18 +841,11 @@ def generate_new_output_json(image_path):
     "Material": "Descreve o material de construção do poste, como Concreto, Metal, Madeira ou uma combinação de Concreto ou Metal.",
     "Estado de Conservação": "Indica o estado de conservação do poste, podendo ser Novo ou Danificado."
   },
-  "Características do Árvore": {
-    "Proximidade com o Poste": "Indica quão próxima a árvore está do poste, podendo estar Próxima, Próxima ao fundo, ou Adjacente.",
-    "Risco de Interferência": "Avalia o risco de interferência da árvore com o poste ou a infraestrutura elétrica, podendo necessitar de intervenções como poda ou remoção.",
-    "Intervenções": "Avalia a necessidade de possíveis intervenções necessárias para mitigar os riscos causados pela árvore, como Poda ou Remoção.",
-    "Interferência Visual": "Avalia o nível de interferência visual causada pela árvore, podendo ser Baixa, Moderada ou Alta."
-  },
   "Quantidades": {
     "Poste Elétrico": "Indica a quantidade na foto",
     "Cruzeta": "Indica a quantidade na foto",
     "Chave Seccionadora Telecomandada": "Indica a quantidade na foto",
     ...,
-    "Árvore": "Indica a quantidade na foto",
   }
 }
 
@@ -874,6 +970,98 @@ def create_app():
 
 ```
 
+add_new_structure.html
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avaliar Nova Estrutura</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <h1 class="text-left my-4">Avaliar Nova Estrutura</h1>
+        <h2 class="text-felt my-4">Projeto: {{ project }}</h2>
+
+        <!-- Add New Structure Form -->
+        <form method="post" action="{{ url_for('validation.add_new_structure', project=project) }}">
+            <div class="mb-3">
+                <label for="new_structure" class="form-label">Nome da Nova Estrutura:</label>
+                <input type="text" class="form-control" id="new_structure" name="new_structure" required>
+            </div>
+            <div class="mb-3">
+                <label for="latitude" class="form-label">Latitude:</label>
+                <input type="text" class="form-control" id="latitude" name="latitude" required>
+            </div>
+            <div class="mb-3">
+                <label for="longitude" class="form-label">Longitude:</label>
+                <input type="text" class="form-control" id="longitude" name="longitude" required>
+            </div>
+            <!-- Button to Get Location -->
+            <button type="button" class="btn btn-secondary" onclick="getLocation()">Obter Localização</button>
+            <button type="submit" class="btn btn-primary">Avaliar Estrutura</button>
+        </form>
+        
+        
+    <!-- Back to Structure Selection -->
+    <a href="{{ url_for('validation.select_structure', project=project) }}" class="btn btn-link mt-4">Voltar para Seleção de Estruturas</a>
+    </div>
+
+    <!-- JavaScript to Get Location -->
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocalização não é suportada por este navegador.");
+            }
+        }
+
+        function showPosition(position) {
+            document.getElementById('latitude').value = position.coords.latitude;
+            document.getElementById('longitude').value = position.coords.longitude;
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Usuário rejeitou a solicitação de Geolocalização.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("As informações de localização não estão disponíveis.");
+                    break;
+                case error.TIMEOUT:
+                    alert("A solicitação para obter a localização do usuário expirou.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Ocorreu um erro desconhecido.");
+                    break;
+            }
+        }
+    </script>
+
+</body>
+</html>
+
+```
+
 error.html
 ```
 <!DOCTYPE html>
@@ -944,7 +1132,7 @@ home.html
             </div>
             <!-- Buttons to Check Structures and Open PDF -->
             <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Conferir Estruturas</button>
-            <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF Selecionado</button>
+            <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF do Projeto</button>
         </form>
 
         <!-- Container for Project Summary -->
@@ -955,12 +1143,12 @@ home.html
 
 ```
 
-results.html
+new_results.html
 ```
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Validation Results</title>
+    <title>Resultados da Nova Estrutura</title>
     <meta charset="UTF-8">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -978,10 +1166,10 @@ results.html
 <body>
     <div class="container">
         <!-- Page Header -->
-        <h1 class="text-center my-4">Validation Results</h1>
+        <h1 class="text-center my-4">Itens Encontrados</h1>
 
-        <!-- Validated Items Section -->
-        <h2 class="section-header">Validated Items:</h2>
+        <!-- Found Items Section -->
+        <h2 class="section-header">Itens Encontrados:</h2>
         <ul class="list-group">
             {% for item, status in encontrados.items() %}
                 {% if status == 'Sim' %}
@@ -1011,58 +1199,195 @@ results.html
             {% endfor %}
         </ul>
 
-        <!-- Exceptions Found Section -->
-        <h2 class="section-header">Exceptions Found:</h2>
-        <!-- Should Exist Subsection -->
-        <h3 class="subsection-header">Should Exist:</h3>
-        <ul class="list-group mb-4">
-            {% for item, status in encontrados.items() %}
-                {% if status == 'Não' %}
-                    <li class="list-group-item item-nao">
-                        <span>{{ item }}: <i class="icon-nao">✗</i></span>
-                    </li>
-                {% endif %}
-            {% endfor %}
-        </ul>
-
-        <!-- Unplanned Found Items Subsection -->
-        <h3 class="subsection-header">Unplanned Found Items:</h3>
-        <ul class="list-group mb-4">
-            {% for item in extras %}
-                <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
-                    <span>{{ item }}</span>
-                    {% if item in caracteristicas %}
-                        <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
-                    {% else %}
-                        <span class="minus">&#8211;</span>
-                    {% endif %}
-                </li>
-                {% if item in caracteristicas %}
-                    <div id="details-extra-{{ loop.index }}" class="details">
-                        <ul>
-                            {% for caract, valor in caracteristicas[item].items() %}
-                                <li>{{ caract }}: {{ valor }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </ul>
-
         <!-- Comments Form -->
-        <form method="post" action="{{ url_for('validation.results', project=project, post=post) }}">
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post) }}">
             <div class="mb-3">
-                <label for="comments" class="form-label">Comments:</label>
+                <label for="comments" class="form-label">Comentários:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
             </div>
             <!-- Form Buttons -->
-            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validate Structure</button>
-            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger">Invalidate Structure</button>
-            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Remove Photo</button>
+            <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
+            <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
+            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Tirar Nova Foto</button>
+            <button type="submit" name="action" value="add_new_structure" class="btn btn-secondary">Adicionar Nova Estrutura</button>
         </form>
         <!-- Back to Home Link -->
         <a href="/" class="btn btn-link">Home</a>
     </div>
+
+    <!-- Initialize Bootstrap Tooltip -->
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Disable invalidate button if comments are empty
+        document.getElementById('validationForm').addEventListener('submit', function(event) {
+            var comments = document.getElementById('comments').value.trim();
+            if (event.submitter && event.submitter.name === 'action' && event.submitter.value === 'invalidate_post' && comments === '') {
+                event.preventDefault();
+                alert('Por favor, comente o motivo da divergência antes de confirmar.');
+            }
+        });
+    </script>
+</body>
+</html>
+
+```
+
+results.html
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resultados da Validação</title>
+    <meta charset="UTF-8">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+    <!-- Popper.js for Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/js/script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Page Header -->
+        <h1 class="text-center my-4">Resultados da Validação</h1>
+
+        <!-- Validated Items Section -->
+        {% if new_structure %}
+            <h2 class="section-header">Itens Verificados:</h2>
+            <ul class="list-group">
+                {% for item, status in encontrados.items() %}
+                    <li class="list-group-item item-sim" id="item-{{ loop.index }}" onclick="toggleDetails({{ loop.index }})">
+                        <span>{{ item }}: <i class="icon-sim">✓</i></span>
+                        {% if item in caracteristicas %}
+                            <span class="arrow" id="arrow-{{ loop.index }}">&#8250;</span>
+                        {% else %}
+                            <span class="minus">&#8211;</span>
+                        {% endif %}
+                    </li>
+                    {% if item in caracteristicas %}
+                        <div id="details-{{ loop.index }}" class="details">
+                            <ul>
+                                {% for caract, valor in caracteristicas[item].items() %}
+                                    <li>{{ caract }}: {{ valor }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <h2 class="section-header">Itens Verificados:</h2>
+            <ul class="list-group">
+                {% for item, status in encontrados.items() %}
+                    {% if status == 'Sim' %}
+                        <li class="list-group-item item-sim" id="item-{{ loop.index }}" onclick="toggleDetails({{ loop.index }})">
+                            <span>{{ item }}: <i class="icon-sim">✓</i></span>
+                            {% if item in caracteristicas %}
+                                <span class="arrow" id="arrow-{{ loop.index }}">&#8250;</span>
+                            {% else %}
+                                <span class="minus">&#8211;</span>
+                            {% endif %}
+                        </li>
+                        {% if item in caracteristicas %}
+                            <div id="details-{{ loop.index }}" class="details">
+                                <ul>
+                                    {% for caract, valor in caracteristicas[item].items() %}
+                                        <li>{{ caract }}: {{ valor }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+            <!-- Exceptions Found Section -->
+            <h2 class="section-header">Exceções Encontradas:</h2>
+            <!-- Should Exist Subsection -->
+            <h3 class="subsection-header">Deveriam Existir:</h3>
+            <ul class="list-group mb-4">
+                {% for item, status in encontrados.items() %}
+                    {% if status == 'Não' %}
+                        <li class="list-group-item item-nao">
+                            <span>{{ item }}: <i class="icon-nao">✗</i></span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+            <!-- Unplanned Found Items Subsection -->
+            <h3 class="subsection-header">Itens Encontrados Não Planejados:</h3>
+            <ul class="list-group mb-4">
+                {% for item in extras %}
+                    <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
+                        <span>{{ item }}</span>
+                        {% if item in caracteristicas %}
+                            <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
+                        {% else %}
+                            <span class="minus">&#8211;</span>
+                        {% endif %}
+                    </li>
+                    {% if item in caracteristicas %}
+                        <div id="details-extra-{{ loop.index }}" class="details">
+                            <ul>
+                                {% for caract, valor in caracteristicas[item].items() %}
+                                    <li>{{ caract }}: {{ valor }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <!-- Comments Form -->
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
+            <div class="mb-3">
+                <label for="comments" class="form-label">Comentários:</label>
+                <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
+            </div>
+            <!-- Form Buttons -->
+            {% if not new_structure %}
+                <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
+                <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
+            {% endif %}
+            <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Tirar Nova Foto</button>
+        </form>
+        {% if new_structure %}
+            <form id="addStructureForm" method="post" action="{{ url_for('validation.add_structure_to_project', project=project, post=post, latitude=request.args.get('latitude'), longitude=request.args.get('longitude')) }}">
+                <button type="submit" class="btn btn-secondary">Adicionar Nova Estrutura Ao Projeto</button>
+            </form>
+        {% endif %}
+        <!-- Back to Home Link -->
+        <a href="/" class="btn btn-link mt-4">Voltar para Seleção de Projetos</a>
+    </div>
+
+    <!-- Initialize Bootstrap Tooltip -->
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Disable invalidate button if comments are empty
+        document.getElementById('validationForm').addEventListener('submit', function(event) {
+            var comments = document.getElementById('comments').value.trim();
+            if (event.submitter && event.submitter.name === 'action' && event.submitter.value === 'invalidate_post' && comments === '') {
+                event.preventDefault();
+                alert('Por favor, comente o motivo da divergência antes de confirmar.');
+            }
+        });
+    </script>
 </body>
 </html>
 
@@ -1073,7 +1398,7 @@ select_structure.html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Structure Selection</title>
+    <title>Seleção de Estruturas</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
@@ -1095,13 +1420,13 @@ select_structure.html
         {% endwith %}
 
         <!-- Page Header -->
-        <h1 class="text-center my-4">Project Structures: {{ project }}</h1>
+        <h1 class="text-center my-4">Estruturas do Projeto: {{ project }}</h1>
 
         <!-- Structure Selection Form -->
-        <div class="d-flex-wrapper mb-3">
-            <form method="post" class="flex-grow-1 me-2">
+        <div class="mb-3">
+            <form method="post">
                 <div class="mb-3">
-                    <label for="post" class="form-label">Choose a structure:</label>
+                    <label for="post" class="form-label">Escolha uma estrutura:</label>
                     <select name="post" id="post" class="form-select">
                         {% for post in posts %}
                             {% set status = validadas[post]['status'] %}
@@ -1109,21 +1434,33 @@ select_structure.html
                                 <option value="{{ post }}">{{ post }} ✓</option>
                             {% elif status == 'invalid' %}
                                 <option value="{{ post }}">{{ post }} ✗</option>
+                            {% elif status == 'extra' %}
+                                <option value="{{ post }}">{{ post }} Ø</option>
                             {% else %}
                                 <option value="{{ post }}">{{ post }} ─</option>
                             {% endif %}
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">Select Structure</button>
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-primary me-2">Selecionar Estrutura</button>
+                </div>
             </form>
         </div>
 
-        <!-- Button to Get Location and Sort List -->
-        <button type="button" class="btn btn-secondary" onclick="getLocation()">Sort List by Location</button>
+        <!-- Botão para adicionar nova estrutura -->
+        <div class="mb-3">
+            <form method="get" action="{{ url_for('validation.add_new_structure') }}">
+                <input type="hidden" name="project" value="{{ project }}">
+                <button type="submit" class="btn btn-primary me-2">Adicionar Nova Estrutura</button>
+            </form>
+        </div>
+
+        <!-- Button to Get Location and Sort List
+        <button type="button" class="btn btn-secondary" onclick="getLocation()">Ordenar Lista por Localização</button> -->
         
-        <!-- Manual Location Input Form -->
-        <h6 class="mt-3">Or enter your location manually:</h6>
+        <!-- Manual Location Input Form
+        <h6 class="mt-3">Ou insira sua localização manualmente:</h6>
         <form id="manual-location-form" method="post" class="mt-3">
             <div class="row">
                 <div class="col">
@@ -1134,8 +1471,8 @@ select_structure.html
                 </div>
             </div>
             <input type="hidden" name="get_location" value="true">
-            <button type="submit" class="btn btn-secondary mt-3">Sort List by Lat Long</button>
-        </form>
+            <button type="submit" class="btn btn-secondary mt-3">Ordenar Lista por Lat Long</button>
+        </form> -->
 
         <!-- Hidden Form to Get Location -->
         <form id="get-location-form" method="post" class="mt-3">
@@ -1145,7 +1482,7 @@ select_structure.html
         </form>
 
         <!-- Back to Home Link -->
-        <a href="/" class="btn btn-link mt-4">Back to Home</a>
+        <a href="/" class="btn btn-link mt-4">Voltar para Seleção de Projetos</a>
     </div>
 </body>
 </html>
@@ -1198,6 +1535,8 @@ upload_photo.html
 
         <!-- Photo Upload Form -->
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
+            <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
+            <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
             <!-- File Input -->
             <div class="mb-3">
                 <input type="file" class="form-control" name="photo" id="file-input" required onchange="previewImage();">
@@ -1212,7 +1551,7 @@ upload_photo.html
             <button type="submit" class="btn btn-primary" id="submit-btn">Iniciar Validação</button>
         </form>
         <!-- Back to Home Link -->
-        <a href="/" class="btn btn-link">Voltar para Home</a>
+        <a href="{{ url_for('validation.select_structure', project=project) }}" class="btn btn-link mt-4">Voltar para Seleção de Estruturas</a>
     </div>
 </body>
 </html>
@@ -1238,7 +1577,7 @@ projetos.json
 {
     "Projeto X": {
         "Poste 1": {
-            "latitude": -23.550520,
+            "latitude": -23.55052,
             "longitude": -46.633308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -1264,7 +1603,7 @@ projetos.json
             }
         },
         "Poste 2": {
-            "latitude": -23.551020,
+            "latitude": -23.55102,
             "longitude": -46.634308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -1294,7 +1633,7 @@ projetos.json
             }
         },
         "Poste 3": {
-            "latitude": -23.552520,
+            "latitude": -23.55252,
             "longitude": -46.635308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -1314,12 +1653,27 @@ projetos.json
                     "Quantidade": 1
                 }
             }
+        },
+        "Nova Estrutura 1": {
+            "latitude": -23.664593,
+            "longitude": -46.534564,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 2": {
+            "latitude": -23.664567,
+            "longitude": -46.534555,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 3": {
+            "latitude": -23.664567,
+            "longitude": -46.534555,
+            "Gabarito": {}
         }
     },
     "Projeto Y": {
         "Poste 4": {
-            "latitude": -22.910020,
-            "longitude": -43.207500,
+            "latitude": -22.91002,
+            "longitude": -43.2075,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -1344,8 +1698,8 @@ projetos.json
             }
         },
         "Poste 5": {
-            "latitude": -22.911020,
-            "longitude": -43.208500,
+            "latitude": -22.91102,
+            "longitude": -43.2085,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -1374,8 +1728,8 @@ projetos.json
             }
         },
         "Poste 6": {
-            "latitude": -22.912020,
-            "longitude": -43.209500,
+            "latitude": -22.91202,
+            "longitude": -43.2095,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -1397,7 +1751,6 @@ projetos.json
         }
     }
 }
-
 ```
 
 results.json
@@ -1408,26 +1761,27 @@ results.json
         "Cruzeta": "Sim",
         "Chave Seccionadora (Chave Faca)": "Sim",
         "Transformador Trifásico": "Sim",
-        "Luminária": "Sim"
+        "Luminária": "Não",
+        "Transformador Monofásico": "Encontrado"
     },
-    "Itens Extras": [
-        "Árvore"
-    ],
     "Características": {
         "Poste Elétrico": {
+            "Material": "Concreto",
+            "Estado de Conservação": "Novo",
             "Quantidade Identificada": 1
         },
         "Cruzeta": {
-            "Quantidade Identificada": 2
+            "Quantidade Identificada": 1
         },
         "Chave Seccionadora (Chave Faca)": {
-            "Quantidade Identificada": 3
+            "Quantidade Identificada": 1
         },
         "Transformador Trifásico": {
+            "Nível de Oxidação": "Baixo",
             "Quantidade Identificada": 1
         },
-        "Luminária": {
-            "Quantidade Identificada": 1
+        "Transformador Monofásico": {
+            "Nível de Oxidação": "Baixo"
         }
     }
 }
@@ -1439,15 +1793,27 @@ validation.json
     "validations": {
         "Projeto X": {
             "Poste 1": {
-                "status": "to_be_validated",
+                "status": "valid",
                 "comments": ""
             },
             "Poste 2": {
-                "status": "invalid",
+                "status": "valid",
                 "comments": ""
             },
             "Poste 3": {
-                "status": "valid",
+                "status": "to_be_validated",
+                "comments": ""
+            },
+            "Nova Estrutura 1": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 2": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 3": {
+                "status": "extra",
                 "comments": ""
             }
         },

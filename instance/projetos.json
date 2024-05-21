@@ -1,7 +1,7 @@
 {
     "Projeto X": {
         "Poste 1": {
-            "latitude": -23.550520,
+            "latitude": -23.55052,
             "longitude": -46.633308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -27,7 +27,7 @@
             }
         },
         "Poste 2": {
-            "latitude": -23.551020,
+            "latitude": -23.55102,
             "longitude": -46.634308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -57,7 +57,7 @@
             }
         },
         "Poste 3": {
-            "latitude": -23.552520,
+            "latitude": -23.55252,
             "longitude": -46.635308,
             "Gabarito": {
                 "Poste Elétrico": {
@@ -77,12 +77,27 @@
                     "Quantidade": 1
                 }
             }
+        },
+        "Nova Estrutura 1": {
+            "latitude": -23.664593,
+            "longitude": -46.534564,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 2": {
+            "latitude": -23.664567,
+            "longitude": -46.534555,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 3": {
+            "latitude": -23.664567,
+            "longitude": -46.534555,
+            "Gabarito": {}
         }
     },
     "Projeto Y": {
         "Poste 4": {
-            "latitude": -22.910020,
-            "longitude": -43.207500,
+            "latitude": -22.91002,
+            "longitude": -43.2075,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -107,8 +122,8 @@
             }
         },
         "Poste 5": {
-            "latitude": -22.911020,
-            "longitude": -43.208500,
+            "latitude": -22.91102,
+            "longitude": -43.2085,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -137,8 +152,8 @@
             }
         },
         "Poste 6": {
-            "latitude": -22.912020,
-            "longitude": -43.209500,
+            "latitude": -22.91202,
+            "longitude": -43.2095,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",

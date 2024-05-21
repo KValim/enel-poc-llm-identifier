@@ -38,7 +38,7 @@ from .utils import (
     allowed_file, calculate_distance,
     generate_new_output_json, is_valid_latlong,
     load_project_data, load_validation_data,
-    save_validation_data
+    save_validation_data, save_project_data
     )
 
 load_dotenv()
@@ -83,18 +83,20 @@ def project_summary():
     estruturas_validadas = validation_data.get('validations', {}).get(selected_project, {})
     posts = list(project_data[selected_project].keys())
 
+    total_extras = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'extra')
     total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
     total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
-    total_nao_validadas = len(posts) - total_validas - total_invalidas
-    total_avaliadas = total_validas + total_invalidas
-    total_estruturas = len(posts)
+    total_nao_validadas = len(posts) - total_validas - total_invalidas - total_extras
+    total_avaliadas = total_validas + total_invalidas + total_extras
+    total_estruturas = len(posts)-total_extras
 
     resumo = {
         'total_validas': total_validas,
         'total_invalidas': total_invalidas,
         'total_nao_validadas': total_nao_validadas,
         'total_avaliadas': total_avaliadas,
-        'total_estruturas': total_estruturas
+        'total_estruturas': total_estruturas,
+        'total_extras': total_extras
     }
 
     return json.dumps(resumo)
@@ -119,7 +121,7 @@ def select_structure():
     for post in posts:
         if post not in validation_data['validations'][project]:
             validation_data['validations'][project][post] = {
-                'status': 'to_be_valided',
+                'status': 'to_be_validated',
                 'comments': ''
             }
     save_validation_data(validation_data)
@@ -208,9 +210,11 @@ def upload_photo():
     Route to upload and validate a photo for a specific structure in a project.
     Methods: GET, POST
     """
-
     project = request.args.get('project')
     post = request.args.get('post')
+    new_structure = request.args.get('new_structure', False)
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
     example_image = url_for('static', filename='images/photo-example.webp')  # Caminho da imagem de exemplo
     uploaded_image = None
 
@@ -249,13 +253,66 @@ def upload_photo():
                 flash('A imagem enviada não tem qualidade.')
                 return redirect(request.url)
 
-            return redirect(url_for('validation.results', project=project, post=post))
+            return redirect(url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
         else:
             flash('Invalid file type. Only image files are allowed.')
             return redirect(request.url)
 
     return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image)
 
+@validation_bp.route('/add_structure_to_project', methods=['POST'])
+def add_structure_to_project():
+    """
+    Route to add the new structure to the project.
+    Methods: POST
+    """
+    project = request.args.get('project')
+    post = request.args.get('post')
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
+    
+    # Debugging statements
+    print(f"Received latitude: {latitude}")
+    print(f"Received longitude: {longitude}")
+
+    if not latitude or not longitude:
+        flash('Latitude e Longitude são obrigatórias.')
+        return redirect(url_for('validation.select_structure', project=project))
+    
+    try:
+        latitude = float(latitude)
+        longitude = float(longitude)
+    except ValueError:
+        flash('Latitude e Longitude devem ser números válidos.')
+        return redirect(url_for('validation.select_structure', project=project))
+    
+    # Add the new structure to the project data
+    project_data = load_project_data()
+    if project not in project_data:
+        project_data[project] = {}
+    if post not in project_data[project]:
+        project_data[project][post] = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "Gabarito": {}
+        }
+        save_project_data(project_data)
+
+        # Add the new structure to the validation data
+        validation_data = load_validation_data()
+        if 'validations' not in validation_data:
+            validation_data['validations'] = {}
+        if project not in validation_data['validations']:
+            validation_data['validations'][project] = {}
+        validation_data['validations'][project][post] = {
+            'status': 'extra',
+            'comments': ''
+        }
+        save_validation_data(validation_data)
+
+        flash(f'Nova estrutura "{post}" adicionada com sucesso ao projeto "{project}"!')
+
+    return redirect(url_for('validation.select_structure', project=project))
 
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
@@ -264,18 +321,22 @@ def results():
     Route to display the validation results of a structure and handle validation actions.
     Methods: GET, POST
     """
-
     project = request.args.get('project')
     post = request.args.get('post')
+    new_structure = request.args.get('new_structure', 'False').lower() == 'true'
+    latitude = request.args.get('latitude')
+    longitude = request.args.get('longitude')
 
     if request.method == 'POST':
         action = request.form['action']
         comments = request.form.get('comments', '')
         validation_data = load_validation_data()
+        project_data = load_project_data()
+
         if 'validations' not in validation_data:
             validation_data['validations'] = {}
         if project not in validation_data['validations']:
-            validation_data['validations'] = {}
+            validation_data['validations'][project] = {}
 
         if action == 'validate_post':
             validation_data['validations'][project][post] = {
@@ -283,7 +344,18 @@ def results():
                 'comments': comments
             }
             save_validation_data(validation_data)
-            flash('Estrutura validado com sucesso!')
+            if new_structure:
+                if project not in project_data:
+                    project_data[project] = {}
+                project_data[project][post] = {
+                    "latitude": float(latitude),
+                    "longitude": float(longitude),
+                    "Gabarito": {}
+                }
+                save_project_data(project_data)
+                flash('Nova estrutura validada e adicionada ao projeto com sucesso!')
+            else:
+                flash('Estrutura validada com sucesso!')
             return redirect(url_for('validation.select_structure', project=project))
         elif action == 'invalidate_post':
             validation_data['validations'][project][post] = {
@@ -295,48 +367,58 @@ def results():
             return redirect(url_for('validation.select_structure', project=project))
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')
-            return redirect(url_for('validation.upload_photo', project=project, post=post))
+            return redirect(url_for('validation.upload_photo', project=project, post=post, new_structure=new_structure, latitude=latitude, longitude=longitude))
 
+    validation_data = load_validation_data()
     project_data = load_project_data()
-    gabarito = project_data[project][post]['Gabarito']
 
     with open('instance/output.json', 'r', encoding='utf-8') as file:
         output = json.load(file)
 
     encontrados = {}
-    extras = {}
     caracteristicas = {}
 
-    for item, _ in gabarito.items():
-        if item in output:
-            encontrados[item] = "Sim"
-            caracteristicas_item = output.get(f"Características do {item}", {})
-            if caracteristicas_item:
-                caracteristicas[item] = caracteristicas_item
-            if 'Quantidades' in output and item in output['Quantidades']:
-                if item in caracteristicas:
-                    caracteristicas[item]['Quantidade Identificada'] = output['Quantidades'][item]
-                else:
-                    caracteristicas[item] = {'Quantidade Identificada': output['Quantidades'][item]}
-        else:
-            encontrados[item] = "Não"
+    if new_structure:
+        for item in output:
+            if not item.startswith('Características do') and item != "Quantidades":
+                encontrados[item] = "Encontrado"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
+    else:
+        gabarito = project_data[project][post]['Gabarito']
 
-    for item in output:
-        if item not in gabarito and not item.startswith('Características do') and item != "Quantidades":
-            extras[item] = "Encontrado"
-            caracteristicas_item = output.get(f"Características do {item}", {})
-            if caracteristicas_item:
-                caracteristicas[item] = caracteristicas_item
+        for item, _ in gabarito.items():
+            if item in output:
+                encontrados[item] = "Sim"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
+                if 'Quantidades' in output and item in output['Quantidades']:
+                    if item in caracteristicas:
+                        caracteristicas[item]['Quantidade Identificada'] = output['Quantidades'][item]
+                    else:
+                        caracteristicas[item] = {'Quantidade Identificada': output['Quantidades'][item]}
+            else:
+                encontrados[item] = "Não"
+
+        for item in output:
+            if item not in gabarito and not item.startswith('Características do') and item != "Quantidades":
+                encontrados[item] = "Encontrado"
+                caracteristicas_item = output.get(f"Características do {item}", {})
+                if caracteristicas_item:
+                    caracteristicas[item] = caracteristicas_item
 
     results_data = {
         'Itens Verificados': encontrados,
-        'Itens Extras': list(extras.keys()),
         'Características': caracteristicas
     }
+
     with open('instance/results.json', 'w', encoding='utf-8') as file:
         json.dump(results_data, file, ensure_ascii=False, indent=4)
 
-    return render_template('results.html', encontrados=encontrados, extras=extras, caracteristicas=caracteristicas, project=project, post=post)
+    return render_template('results.html', encontrados=encontrados, caracteristicas=caracteristicas, project=project, post=post, new_structure=new_structure)
+
 
 @validation_bp.route('/check_validation_status', methods=['POST'])
 def check_validation_status():
@@ -352,3 +434,25 @@ def check_validation_status():
     has_unvalidated_structures = any(estrutura['status'] == 'to_be_validated' for estrutura in estruturas_validadas.values())
 
     return json.dumps({'has_unvalidated_structures': has_unvalidated_structures})
+
+@validation_bp.route('/add_new_structure', methods=['GET', 'POST'])
+def add_new_structure():
+    """
+    Route to add a new structure to the project.
+    Methods: GET, POST
+    """
+    project = request.args.get('project')
+
+    if request.method == 'POST':
+        new_structure = request.form.get('new_structure')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+
+        if not new_structure or not latitude or not longitude:
+            flash('Todos os campos são obrigatórios.')
+            return redirect(url_for('validation.add_new_structure', project=project))
+
+        flash(f'Nova estrutura "{new_structure}" iniciando validação!')
+        return redirect(url_for('validation.upload_photo', project=project, post=new_structure, new_structure=True, latitude=latitude, longitude=longitude))
+
+    return render_template('add_new_structure.html', project=project)

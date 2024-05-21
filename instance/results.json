@@ -4,9 +4,9 @@
         "Cruzeta": "Sim",
         "Chave Seccionadora (Chave Faca)": "Sim",
         "Transformador Trifásico": "Sim",
-        "Luminária": "Sim"
+        "Luminária": "Não",
+        "Transformador Monofásico": "Encontrado"
     },
-    "Itens Extras": [],
     "Características": {
         "Poste Elétrico": {
             "Material": "Concreto",
@@ -14,17 +14,17 @@
             "Quantidade Identificada": 1
         },
         "Cruzeta": {
-            "Quantidade Identificada": 2
+            "Quantidade Identificada": 1
         },
         "Chave Seccionadora (Chave Faca)": {
-            "Quantidade Identificada": 3
+            "Quantidade Identificada": 1
         },
         "Transformador Trifásico": {
             "Nível de Oxidação": "Baixo",
             "Quantidade Identificada": 1
         },
-        "Luminária": {
-            "Quantidade Identificada": 1
+        "Transformador Monofásico": {
+            "Nível de Oxidação": "Baixo"
         }
     }
 }

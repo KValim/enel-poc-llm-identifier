@@ -2,15 +2,27 @@
     "validations": {
         "Projeto X": {
             "Poste 1": {
-                "status": "invalid",
-                "comments": "Existe um transformador monofásico na estrutura."
+                "status": "valid",
+                "comments": ""
             },
             "Poste 2": {
-                "status": "to_be_validated",
+                "status": "valid",
                 "comments": ""
             },
             "Poste 3": {
-                "status": "valid",
+                "status": "to_be_validated",
+                "comments": ""
+            },
+            "Nova Estrutura 1": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 2": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 3": {
+                "status": "extra",
                 "comments": ""
             }
         },

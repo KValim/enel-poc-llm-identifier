@@ -1,31 +1,47 @@
 {
     "validations": {
         "Projeto X": {
-            "Poste 1": {
+            "Estrutura 1": {
                 "status": "valid",
                 "comments": ""
             },
-            "Poste 2": {
+            "Estrutura 2": {
                 "status": "invalid",
-                "comments": "Monofásico esta la, mas nao recebi luminaria."
+                "comments": "comentario"
             },
-            "Poste 3": {
+            "Estrutura 3": {
                 "status": "valid",
+                "comments": ""
+            },
+            "Nova Estrutura 1": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 2": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 3": {
+                "status": "extra",
                 "comments": ""
             }
         },
         "Projeto Y": {
-            "Poste 4": {
+            "Estrutura 4": {
                 "status": "valid",
                 "comments": ""
             },
-            "Poste 5": {
+            "Estrutura 5": {
                 "status": "valid",
                 "comments": ""
             },
-            "Poste 6": {
+            "Estrutura 6": {
                 "status": "invalid",
                 "comments": "Tudo errado"
+            },
+            "Poste 4": {
+                "status": "to_be_validated",
+                "comments": ""
             }
         },
         "": {}

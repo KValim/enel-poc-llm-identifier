@@ -1,21 +1,3 @@
 {
-  "Poste Elétrico": true,
-  "Cruzeta": true,
-  "Transformador Monofásico": true,
-  "Chave Seccionadora (Chave Faca)": true,
-  "Medidor de Energia": true,
-  "Características do Transformador Monofásico": {
-    "Nível de Oxidação": "Médio"
-  },
-  "Características do Poste Elétrico": {
-    "Material": "Madeira",
-    "Estado de Conservação": "Danificado"
-  },
-  "Quantidades": {
-    "Poste Elétrico": 1,
-    "Cruzeta": 1,
-    "Transformador Monofásico": 1,
-    "Chave Seccionadora (Chave Faca)": 1,
-    "Medidor de Energia": 1
-  }
+  "mensagem": "Imagem não relacionada."
 }

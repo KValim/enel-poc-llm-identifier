@@ -77,6 +77,21 @@
                     "Quantidade": 1
                 }
             }
+        },
+        "Nova Estrutura 1": {
+            "latitude": -23.55052,
+            "longitude": -46.633308,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 2": {
+            "latitude": -23.664661,
+            "longitude": -46.533844,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 3": {
+            "latitude": -23.664566,
+            "longitude": -46.534549,
+            "Gabarito": {}
         }
     },
     "Projeto Y": {

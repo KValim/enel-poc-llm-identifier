@@ -7,14 +7,10 @@
             },
             "Poste 2": {
                 "status": "invalid",
-                "comments": "Nao recebi a luminaria"
+                "comments": "Monofásico esta la, mas nao recebi luminaria."
             },
             "Poste 3": {
                 "status": "valid",
-                "comments": ""
-            },
-            "Nova Estrutura 1": {
-                "status": "extra",
                 "comments": ""
             }
         },
@@ -29,7 +25,7 @@
             },
             "Poste 6": {
                 "status": "invalid",
-                "comments": "Comentário aqui"
+                "comments": "Tudo errado"
             }
         },
         "": {}

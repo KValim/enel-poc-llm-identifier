@@ -2,17 +2,18 @@
     "Itens Verificados": {
         "Poste Elétrico": "Encontrado",
         "Cruzeta": "Encontrado",
-        "Transformador Trifásico": "Encontrado",
-        "Luminária": "Encontrado"
+        "Transformador Monofásico": "Encontrado",
+        "Chave Seccionadora (Chave Faca)": "Encontrado",
+        "Medidor de Energia": "Encontrado"
     },
     "Itens Extras": [],
     "Características": {
         "Poste Elétrico": {
-            "Material": "Concreto",
-            "Estado de Conservação": "Novo"
+            "Material": "Madeira",
+            "Estado de Conservação": "Danificado"
         },
-        "Transformador Trifásico": {
-            "Nível de Oxidação": "Baixo"
+        "Transformador Monofásico": {
+            "Nível de Oxidação": "Médio"
         }
     }
 }

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resumo do Projeto</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+    <script src="/static/js/script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <h1 class="text-center my-4">{{ project }}</h1>
+
+        <!-- Project Summary Section -->
+        <div id="project-summary" class="mt-4">
+            <h2 class="section-header">Resumo da Validação</h2>
+            <p><strong>Estruturas Avaliadas: {{resumo.total_avaliadas}}/{{resumo.total_estruturas}}</strong></p>
+            <p>Estruturas Válidadas: {{resumo.total_validas}}</p>
+            <p>Estruturas Com Divergênca: {{resumo.total_invalidas}}</p>
+            <p>Estruturas Extras Encontradas: {{resumo.total_extras}}</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="mt-4">
+            <button id="validate-project-btn" class="btn btn-primary" onclick="checkValidationStatus()">Concluir Obra</button>
+            <form method="post" action="{{ url_for('validation.add_and_upload') }}" class="d-inline">
+                <input type="hidden" name="project" value="{{ project }}">
+                <button type="submit" class="btn btn-secondary">Adicionar Nova Estrutura</button>
+            </form>
+        </div>
+        
+        <!-- Back to Home Link -->
+        <a href="/" class="btn btn-link mt-4">Voltar para Seleção de Projetos</a>
+    </div>
+
+<!-- Modal for Confirmation -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">Confirmação de Validação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Ainda existem estruturas não validadas. Tem certeza de que deseja continuar?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmValidateProject()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom JavaScript -->
+<script>
+    function checkValidationStatus() {
+        const selectedProject = "{{ project }}";
+        $.post("/check_validation_status", { project: selectedProject }, function(data) {
+            const result = JSON.parse(data);
+            if (result.has_unvalidated_structures) {
+                $('#confirmationModal').modal('show');
+            } else {
+                confirmValidateProject();
+            }
+        });
+    }
+
+    function confirmValidateProject() {
+        const selectedProject = "{{ project }}";
+        $.post("/validate_project", { project: selectedProject }, function() {
+            // Store flash message in local storage
+            localStorage.setItem('flash_message', `Projeto ${selectedProject} Validado com sucesso!`);
+            // Redirect to home page
+            window.location.href = "/";
+        });
+    }
+
+    $(document).ready(function() {
+        // Initialize Bootstrap modals
+        $('#confirmationModal').modal({ show: false });
+    });
+</script>
+</body>
+</html>

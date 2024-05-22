@@ -45,6 +45,7 @@
             <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
             <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
             <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
+            <input type="hidden" name="new_structure" value="{{ new_structure }}">
             <!-- File Input -->
             <div class="mb-3">
                 <input type="file" class="form-control" name="photo" id="file-input" required onchange="previewImage();">
@@ -58,8 +59,48 @@
             <!-- Submit Button -->
             <button type="submit" class="btn btn-primary" id="submit-btn">Iniciar Validação</button>
         </form>
-        <!-- Back to Home Link -->
-        <a href="{{ url_for('validation.select_structure', project=project) }}" class="btn btn-link mt-4">Voltar para Seleção de Estruturas</a>
+        
+        <!-- Conditional Back Button -->
+        {% if new_structure %}
+            <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
+        {% else %}
+            <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.select_structure', project=project) }}')">Voltar para Seleção de Estruturas</a>
+        {% endif %}
     </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exitConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exitConfirmationModalLabel">Confirmação de Saída</h5>
+                </div>
+                <div class="modal-body">
+                    Você perderá toda a validação caso saia do processo. Deseja sair da página?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <button type="button" class="btn btn-primary" id="confirm-exit-btn">Sim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+
+    <script>
+        function confirmExit(url) {
+            var confirmExitBtn = document.getElementById('confirm-exit-btn');
+            confirmExitBtn.onclick = function() {
+                window.location.href = url;
+            };
+            var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+            exitConfirmationModal.show();
+        }
+
+        // Resto do seu JavaScript
+    </script>
 </body>
 </html>

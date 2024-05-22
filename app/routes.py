@@ -71,36 +71,40 @@ def home():
 
     return render_template('home.html', projects=projects, resumo=resumo)
 
-@validation_bp.route('/project_summary', methods=['POST'])
+@validation_bp.route('/project_summary', methods=['GET'])
 def project_summary():
     """
-    Endpoint to get a summary of the project validation status.
-    Methods: POST
+    Route to display the project summary page.
+    Methods: GET
     """
-
-    selected_project = request.form['project']
+    project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
-    estruturas_validadas = validation_data.get('validations', {}).get(selected_project, {})
-    posts = list(project_data[selected_project].keys())
+    
+    if project in project_data:
+        estruturas_validadas = validation_data.get('validations', {}).get(project, {})
+        posts = list(project_data[project].keys())
 
-    total_extras = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'extra')
-    total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
-    total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
-    total_nao_validadas = len(posts) - total_validas - total_invalidas - total_extras
-    total_avaliadas = total_validas + total_invalidas + total_extras
-    total_estruturas = len(posts)-total_extras
+        total_extras = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'extra')
+        total_validas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'valid')
+        total_invalidas = sum(1 for estrutura in estruturas_validadas.values() if estrutura['status'] == 'invalid')
+        total_nao_validadas = len(posts) - total_validas - total_invalidas - total_extras
+        total_avaliadas = total_validas + total_invalidas
+        total_estruturas = len(posts) - total_extras
 
-    resumo = {
-        'total_validas': total_validas,
-        'total_invalidas': total_invalidas,
-        'total_nao_validadas': total_nao_validadas,
-        'total_avaliadas': total_avaliadas,
-        'total_estruturas': total_estruturas,
-        'total_extras': total_extras
-    }
+        resumo = {
+            'total_validas': total_validas,
+            'total_invalidas': total_invalidas,
+            'total_nao_validadas': total_nao_validadas,
+            'total_avaliadas': total_avaliadas,
+            'total_estruturas': total_estruturas,
+            'total_extras': total_extras
+        }
 
-    return json.dumps(resumo)
+        return render_template('project_summary.html', project=project, resumo=resumo)
+    else:
+        flash('Projeto não encontrado.')
+        return redirect(url_for('main.home'))
 
 @validation_bp.route('/select_structure', methods=['GET', 'POST'])
 def select_structure():
@@ -153,7 +157,6 @@ def validate_project():
     Route to validate all structures within a selected project.
     Methods: POST
     """
-
     project = request.form['project']
 
     validation_data = load_validation_data()
@@ -162,14 +165,15 @@ def validate_project():
     if project not in validation_data['validations']:
         validation_data['validations'][project] = {}
 
-    # Validar todas as estruturas como 'valid'
-    for post in validation_data['validations'][project].keys():
-        validation_data['validations'][project][post]['status'] = 'valid'
+    unvalidated_structures = {post: data for post, data in validation_data['validations'][project].items() if data['status'] == 'to_be_validated'}
 
-    save_validation_data(validation_data)
+    if not unvalidated_structures:
+        flash(f'Projeto {project} Validado com sucesso!')
+        return redirect(url_for('main.home'))
+    else:
+        flash('Ainda existem estruturas não validadas. Confirme a validação manualmente.')
+        return redirect(url_for('validation.project_summary', project=project))
 
-    flash('Projeto validado com sucesso!')
-    return redirect(url_for('main.home'))
 
 @validation_bp.route('/open_pdf')
 def open_pdf():
@@ -190,7 +194,7 @@ def upload_photo():
     project = request.args.get('project')
     post = request.args.get('post')
     direction = request.args.get('direction')
-    new_structure = request.args.get('new_structure', False)
+    new_structure = request.args.get('new_structure', 'False').lower() == 'true'
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
     example_image = url_for('static', filename='images/photo-example.webp')
@@ -240,7 +244,8 @@ def upload_photo():
         else:
             flash('Formato de arquivo inválido. Apenas imagens são permitidas.')
             return redirect(request.url)
-    return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image)
+    return render_template('upload_photo.html', project=project, post=post, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure)
+
 
 @validation_bp.route('/add_structure_to_project', methods=['POST'])
 def add_structure_to_project():
@@ -248,10 +253,10 @@ def add_structure_to_project():
     Route to add the new structure to the project.
     Methods: POST
     """
-    project = request.args.get('project')
-    post = request.args.get('post')
-    latitude = request.args.get('latitude')
-    longitude = request.args.get('longitude')
+    project = request.form.get('project')
+    post = request.form.get('post')
+    latitude = request.form.get('latitude')
+    longitude = request.form.get('longitude')
 
     # Debugging statements
     print(f"Received latitude: {latitude}")
@@ -294,7 +299,7 @@ def add_structure_to_project():
 
         flash(f'Nova estrutura "{post}" adicionada com sucesso ao projeto "{project}"!')
 
-    return redirect(url_for('validation.select_structure', project=project))
+    return redirect(url_for('validation.project_summary', project=project))
 
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
@@ -340,7 +345,7 @@ def results():
                 return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
             else:
                 flash('Todas as estruturas foram avaliadas.')
-                return redirect(url_for('main.home'))
+                return redirect(url_for('validation.project_summary', project=project))
 
         elif action == 'invalidate_post':
             validation_data['validations'][project][post] = {
@@ -354,7 +359,7 @@ def results():
                 return redirect(url_for('validation.upload_photo', project=project, post=next_post, direction=direction))
             else:
                 flash('Todas as estruturas foram avaliadas.')
-                return redirect(url_for('main.home'))
+                return redirect(url_for('validation.project_summary', project=project))
 
         elif action == 'remove_photo':
             flash('Por favor, envie outra foto.')
@@ -445,7 +450,39 @@ def add_new_structure():
             flash('Todos os campos são obrigatórios.')
             return redirect(url_for('validation.add_new_structure', project=project))
 
-        flash(f'Nova estrutura "{new_structure}" iniciando validação!')
-        return redirect(url_for('validation.upload_photo', project=project, post=new_structure, new_structure=True, latitude=latitude, longitude=longitude))
+        # Carregar os dados de validação
+        validation_data = load_validation_data()
+
+        # Contar o número de novas estruturas já existentes no projeto
+        existing_new_structures = [key for key in validation_data['validations'].get(project, {}) if key.startswith('Nova Estrutura')]
+        new_structure_number = len(existing_new_structures) + 1
+        new_structure_name = f"Nova Estrutura {new_structure_number}"
+
+        flash(f'Nova estrutura "{new_structure_name}" iniciando validação!')
+        return redirect(url_for('validation.upload_photo', project=project, post=new_structure_name, new_structure=True, latitude=latitude, longitude=longitude))
 
     return render_template('add_new_structure.html', project=project)
+
+@validation_bp.route('/add_and_upload', methods=['POST'])
+def add_and_upload():
+    """
+    Route to generate a new structure name and latitude/longitude,
+    then redirect to the upload photo page without saving to the database.
+    Methods: POST
+    """
+    project = request.form['project']
+
+    # Carregar os dados de validação
+    validation_data = load_validation_data()
+    
+    # Contar o número de novas estruturas já existentes no projeto
+    existing_new_structures = [key for key in validation_data['validations'].get(project, {}) if key.startswith('Nova Estrutura')]
+    new_structure_number = len(existing_new_structures) + 1
+    new_structure_name = f"Nova Estrutura {new_structure_number}"
+
+    # Obter latitude e longitude automaticamente (simulando com valores fixos ou usando lógica real)
+    latitude = request.form.get('latitude', '-23.550520')
+    longitude = request.form.get('longitude', '-46.633308')
+
+    # Redirecionar para upload de foto com parâmetros necessários
+    return redirect(url_for('validation.upload_photo', project=project, post=new_structure_name, new_structure=True, latitude=latitude, longitude=longitude))

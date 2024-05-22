@@ -14,6 +14,8 @@
 <body>
     <div class="container">
         <!-- Flash Messages -->
+        <div id="flash-message" class="alert alert-success" role="alert" style="display:none;"></div>
+        
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
@@ -38,7 +40,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <!-- Buttons to Check Structures and Open PDF -->
+            <!-- Buttons to Check Structures, Open PDF, and View Project Summary -->
             <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Conferir Estruturas</button>
             <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF do Projeto</button>
         </form>
@@ -46,5 +48,38 @@
         <!-- Container for Project Summary -->
         <div id="project-summary" class="mt-4"></div>
     </div>
+
+    <!-- JavaScript to Enable/Disable Buttons Based on Project Selection -->
+    <script>
+        document.getElementById('project').addEventListener('change', function() {
+            const selectedProject = this.value;
+            const isProjectSelected = selectedProject !== '';
+            document.getElementById('select-structure-btn').disabled = !isProjectSelected;
+            document.getElementById('open-pdf-btn').disabled = !isProjectSelected;
+            document.getElementById('view-summary-btn').disabled = !isProjectSelected;
+        });
+
+        function viewSummary() {
+            const selectedProject = document.getElementById('project').value;
+            if (selectedProject) {
+                window.location.href = `/project_summary?project=${selectedProject}`;
+            }
+        }
+
+        function openPDF() {
+            const selectedProject = document.getElementById('project').value;
+            if (selectedProject) {
+                window.location.href = `/open_pdf?file=${selectedProject}.pdf`;
+            }
+        }
+        // Check for flash message in local storage
+        $(document).ready(function() {
+            const flashMessage = localStorage.getItem('flash_message');
+            if (flashMessage) {
+                $('#flash-message').text(flashMessage).show();
+                localStorage.removeItem('flash_message');
+            }
+        });
+    </script>
 </body>
 </html>

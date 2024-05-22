@@ -21,8 +21,8 @@ function showSummary(project) {
             <p><strong>Estruturas Avaliadas: ${summary.total_avaliadas}/${summary.total_estruturas}</strong></p>
             <p>Total de Estruturas Válidadas: ${summary.total_validas}</p>
             <p>Total de Estruturas Com Divergênca: ${summary.total_invalidas}</p>
-            <p>Total de Estruturas Não Avalidadas: ${summary.total_nao_validadas}</p>
-            <p>Total de Estruturas Extras Encontradas: ${summary.total_extras}</p>
+            <!-- <p>Total de Estruturas Não Avalidadas: ${summary.total_nao_validadas}</p>
+            <p>Total de Estruturas Extras Encontradas: ${summary.total_extras}</p> -->
             <form id="validate-project-form" method="post" action="/validate_project">
                 <input type="hidden" name="project" id="selected-project" value="">
                 <button type="button" class="btn btn-success mt-3" onclick="validateProject()">Validar Projeto</button>

@@ -1,19 +1,21 @@
 {
   "Poste Elétrico": true,
   "Cruzeta": true,
-  "Transformador Trifásico": true,
-  "Luminária": true,
-  "Características do Transformador Trifásico": {
-    "Nível de Oxidação": "Baixo"
+  "Transformador Monofásico": true,
+  "Chave Seccionadora (Chave Faca)": true,
+  "Medidor de Energia": true,
+  "Características do Transformador Monofásico": {
+    "Nível de Oxidação": "Médio"
   },
   "Características do Poste Elétrico": {
-    "Material": "Concreto",
-    "Estado de Conservação": "Novo"
+    "Material": "Madeira",
+    "Estado de Conservação": "Danificado"
   },
   "Quantidades": {
     "Poste Elétrico": 1,
     "Cruzeta": 1,
-    "Transformador Trifásico": 1,
-    "Luminária": 1
+    "Transformador Monofásico": 1,
+    "Chave Seccionadora (Chave Faca)": 1,
+    "Medidor de Energia": 1
   }
 }

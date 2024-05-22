@@ -285,7 +285,7 @@ def get_next_post(project, current_post, direction='forward'):
     validation_data = load_validation_data()
     project_data = load_project_data()
     posts = list(project_data[project].keys())
-    
+
     # Excluir estruturas com status 'extra'
     posts = [post for post in posts if validation_data['validations'][project].get(post, {}).get('status') != 'extra']
 
@@ -294,18 +294,11 @@ def get_next_post(project, current_post, direction='forward'):
     else:
         ordered_posts = order_structures_by_latlong({post: project_data[project][post] for post in posts})
         ordered_posts = ordered_posts[::-1]
-    current_index = ordered_posts.index(current_post)
-    
-    print(f"Current post: {current_post}")
-    print(f"Ordered posts: {ordered_posts}")
-    print(f"Current index: {current_index}")
 
-    
+    current_index = ordered_posts.index(current_post)
     next_index = current_index + 1
 
-    print(f"Next index: {next_index}")
-
-    if 0 <= next_index < len(ordered_posts):
+    if next_index < len(ordered_posts):
         return ordered_posts[next_index]
     else:
         # Quando não há mais postes na direção escolhida, retornar None

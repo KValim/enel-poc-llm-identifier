@@ -1,6 +1,6 @@
 {
     "Projeto X": {
-        "Poste 1": {
+        "Estrutura 1": {
             "latitude": -23.55052,
             "longitude": -46.633308,
             "Gabarito": {
@@ -26,7 +26,7 @@
                 }
             }
         },
-        "Poste 2": {
+        "Estrutura 2": {
             "latitude": -23.55102,
             "longitude": -46.634308,
             "Gabarito": {
@@ -56,7 +56,7 @@
                 }
             }
         },
-        "Poste 3": {
+        "Estrutura 3": {
             "latitude": -23.55252,
             "longitude": -46.635308,
             "Gabarito": {
@@ -77,11 +77,6 @@
                     "Quantidade": 1
                 }
             }
-        },
-        "Nova Estrutura 1": {
-            "latitude": -23.664633,
-            "longitude": -46.534217,
-            "Gabarito": {}
         }
     },
     "Projeto Y": {
@@ -111,7 +106,7 @@
                 }
             }
         },
-        "Poste 5": {
+        "Estrutura 5": {
             "latitude": -22.91102,
             "longitude": -43.2085,
             "Gabarito": {
@@ -141,7 +136,7 @@
                 }
             }
         },
-        "Poste 6": {
+        "Estrutura 6": {
             "latitude": -22.91202,
             "longitude": -43.2095,
             "Gabarito": {

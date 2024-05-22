@@ -29,8 +29,8 @@
             <div class="mb-3">
                 <label for="side" class="form-label">Escolha o lado para começar a validação:</label>
                 <select name="side" id="side" class="form-select" required>
-                    <option value="A">Lado A - Inicio na Estrutra: {{ posts[0] }}</option>
-                    <option value="B">Lado B - Inicio na Estrutra: {{ posts[-1] }}</option>
+                    <option value="A">Lado A - Inicio na {{ structures[0] }}</option>
+                    <option value="B">Lado B - Inicio na {{ structures[-1] }}</option>
                 </select>
             </div>
             <button type="submit" name="start_validation" class="btn btn-primary">Começar Validação</button>
@@ -39,18 +39,18 @@
         <div class="mb-3">
             <form method="post">
                 <div class="mb-3">
-                    <label for="post" class="form-label">Escolha uma estrutura:</label>
-                    <select name="post" id="post" class="form-select">
-                        {% for post in posts %}
-                            {% set status = validadas[post]['status'] %}
+                    <label for="structure" class="form-label">Escolha uma estrutura:</label>
+                    <select name="structure" id="structure" class="form-select">
+                        {% for structure in structures %}
+                            {% set status = validadas[structure]['status'] %}
                             {% if status == 'valid' %}
-                                <option value="{{ post }}">{{ post }} ✓</option>
+                                <option value="{{ structure }}">{{ structure }} ✓</option>
                             {% elif status == 'invalid' %}
-                                <option value="{{ post }}">{{ post }} ✗</option>
+                                <option value="{{ structure }}">{{ structure }} ✗</option>
                             {% elif status == 'extra' %}
-                                <option value="{{ post }}">{{ post }} Ø</option>
+                                <option value="{{ structure }}">{{ structure }} Ø</option>
                             {% else %}
-                                <option value="{{ post }}">{{ post }} ─</option>
+                                <option value="{{ structure }}">{{ structure }} ─</option>
                             {% endif %}
                         {% endfor %}
                     </select>

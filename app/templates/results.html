@@ -111,22 +111,22 @@
         {% endif %}
 
         <!-- Comments Form -->
-        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, post=post, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude'), direction=request.args.get('direction')) }}">
+        <form id="validationForm" method="post" action="{{ url_for('validation.results', project=project, structure=structure, new_structure=new_structure, latitude=request.args.get('latitude'), longitude=request.args.get('longitude'), direction=request.args.get('direction')) }}">
             <div class="mb-3">
                 <label for="comments" class="form-label">Comentários:</label>
                 <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
             </div>
             <!-- Form Buttons -->
             {% if not new_structure %}
-                <button type="submit" name="action" value="validate_post" class="btn btn-success">Validar Estrutura</button>
-                <button type="submit" name="action" value="invalidate_post" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
+                <button type="submit" name="action" value="validate_structure" class="btn btn-success">Validar Estrutura</button>
+                <button type="submit" name="action" value="invalidate_structure" class="btn btn-danger" id="invalidateButton" data-bs-toggle="tooltip" data-bs-placement="top" title='Comente o motivo. Por exemplo: "App não identificou corretamente, na verdade o transformador monofásico existe."'>Confirma Divergência</button>
             {% endif %}
             <button type="submit" name="action" value="remove_photo" class="btn btn-warning">Tirar Nova Foto</button>
         </form>
         {% if new_structure %}
         <form id="addStructureForm" method="post" action="{{ url_for('validation.add_structure_to_project') }}">
             <input type="hidden" name="project" value="{{ project }}">
-            <input type="hidden" name="post" value="{{ post }}">
+            <input type="hidden" name="structure" value="{{ structure }}">
             <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
             <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
             <button type="submit" class="btn btn-secondary">Adicionar Nova Estrutura Ao Projeto</button>

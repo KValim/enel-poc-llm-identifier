@@ -29,13 +29,13 @@
         <!-- Page Header -->
         <h1 class="my-4">Upload de Foto</h1>
         <h2 class="my-4">Projeto: {{ project }}</h2>
-        <h2 class="my-4">Estrutura: {{ post }}</h2>
+        <h2 class="my-4">Estrutura: {{ structure }}</h2>
 
         <!-- Photo Upload Guidelines -->
         <p class="lead">Siga estas recomendações para garantir a melhor captura:</p>
         <ul>
-            <li>Ficar a uma distância que consiga tirar uma foto clara da metade do poste para cima.</li>
-            <li>Ficar a 45º do centro do poste, buscando o melhor ângulo que mostre com clareza todos os componentes do projeto.</li>
+            <li>Ficar a uma distância que consiga tirar uma foto clara da metade da estrutura para cima.</li>
+            <li>Ficar a 45º do centro da estrutura, buscando o melhor ângulo que mostre com clareza todos os componentes do projeto.</li>
             <li>Utilizar um celular com resolução alta, sem flash.</li>
             <li>Buscar ficar de costas para o sol.</li>
         </ul>
@@ -62,7 +62,7 @@
         
         <!-- Conditional Back Button -->
         {% if new_structure %}
-            <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
+            <a href="#" class="btn btn-link mt-4" onclick="navigateWithoutConfirmation('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
         {% else %}
             <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.select_structure', project=project) }}')">Voltar para Seleção de Estruturas</a>
         {% endif %}
@@ -92,12 +92,20 @@
 
     <script>
         function confirmExit(url) {
-            var confirmExitBtn = document.getElementById('confirm-exit-btn');
-            confirmExitBtn.onclick = function() {
+            if (url.includes('select_structure')) {
+                var confirmExitBtn = document.getElementById('confirm-exit-btn');
+                confirmExitBtn.onclick = function() {
+                    window.location.href = url;
+                };
+                var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+                exitConfirmationModal.show();
+            } else {
                 window.location.href = url;
-            };
-            var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-            exitConfirmationModal.show();
+            }
+        }
+
+        function navigateWithoutConfirmation(url) {
+            window.location.href = url;
         }
 
         // Resto do seu JavaScript

@@ -20,6 +20,8 @@ Functions:
     is_valid_latlong(lat, lon): Checks if the provided latitude and longitude are valid.
     generate_new_output_json(image_path): Generates a new output JSON based on the provided image.
     encode_image(image_path): Encodes an image to a base64 string.
+    order_structures_by_latlong(structures): Orders the structures based on their latitude and longitude.
+    get_next_structure(project, current_structure, direction='forward'): Get the next structure in the project based on the current structure and direction.
 """
 
 import base64
@@ -272,16 +274,26 @@ def encode_image(image_path):
 def order_structures_by_latlong(structures):
     """
     Orders the structures based on their latitude and longitude.
-    
+
     Args:
         structures (dict): Dictionary of structures with their latitude and longitude.
-        
+
     Returns:
         list: List of structure names ordered by their latitude and longitude.
     """
     return sorted(structures, key=lambda x: (structures[x]['latitude'], structures[x]['longitude']))
 
 def get_next_structure(project, current_structure, direction='forward'):
+    """Get the next structure in the project based on the current structure and direction.
+
+    Args:
+        project (str): The name of the project.
+        current_structure (str): The current structure's name.
+        direction (str, optional): The direction to move ('forward' or 'backward'). Defaults to 'forward'.
+
+    Returns:
+        str or None: The name of the next structure if available, otherwise None.
+    """
     validation_data = load_validation_data()
     project_data = load_project_data()
     structures = list(project_data[project].keys())

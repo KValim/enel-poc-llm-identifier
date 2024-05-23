@@ -1,3 +1,7 @@
+O README foi atualizado conforme solicitado. Aqui está a versão atualizada:
+
+---
+
 # ENEL POC LLM IDENTIFIER
 
 A Flask application for validating project structures using OpenAI's API.
@@ -84,6 +88,8 @@ This Flask application helps in validating structures within different projects.
 - **Upload Photo** (`/upload_photo`): Handles the upload and validation of a photo for a specific structure in a project.
 - **Results** (`/results`): Displays the validation results of a structure and handles validation actions.
 - **Check Validation Status** (`/check_validation_status`): Checks if there are any unvalidated structures in a project.
+- **Add New Structure** (`/add_new_structure`): Route to add a new structure to the project.
+- **Add and Upload** (`/add_and_upload`): Route to generate a new structure name and latitude/longitude, then redirect to the upload photo page without saving to the database.
 
 ## Project Structure
 
@@ -100,6 +106,8 @@ ENEL-POC-LLM-IDENTIFIER/
 │   │   ├── results.html
 │   │   ├── select_structure.html
 │   │   ├── upload_photo.html
+│   │   ├── project_summary.html
+│   │   ├── add_new_structure.html
 │   ├── static/
 │   │   ├── css/
 │   │   │   └── style.css
@@ -107,11 +115,12 @@ ENEL-POC-LLM-IDENTIFIER/
 │   │   ├── js/
 │   │   │   └── script.js
 │   │   └── uploads/
-│   ├── instance/
+├── instance/
 │   │   ├── projetos.json
 │   │   ├── validation.json
 │   │   ├── output.json
 │   │   ├── output.txt
+│   │   ├── results.json
 │   │   ├── pdfs/
 ├── .env.example
 ├── .pylintrc

@@ -1,7 +1,7 @@
 """
 This module provides the Flask application routes and logic for managing project validations,
 including selecting structures, uploading and validating photos, and generating project summaries.
-It integrates OpenAI for generating new output JSON files based on uploaded photos, and uses
+It integrates OpenAI for generating new output JSON files based on uploaded photos and uses
 utility functions for various validation and data handling tasks.
 
 Modules:
@@ -21,26 +21,26 @@ Functions:
     upload_photo(): Handles the upload and validation of a photo for a specific structure in a project.
     results(): Displays the validation results of a structure and handles validation actions.
     check_validation_status(): Checks if there are any unvalidated structures in a project.
+    add_structure_to_project(): Adds a new structure to the project.
+    add_new_structure(): Route to add a new structure to the project.
+    add_and_upload(): Route to generate a new structure name and latitude/longitude, 
+                      then redirect to the upload photo page without saving to the database.
 """
+
 
 import json
 import os
 
 from dotenv import load_dotenv
-from flask import (
-    Blueprint, flash, redirect,
-    render_template, request, send_file, url_for
-    )
+from flask import (Blueprint, flash, redirect, render_template, request,
+                   send_file, url_for)
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 
-from .utils import (
-    allowed_file, calculate_distance,
-    generate_new_output_json, is_valid_latlong,
-    load_project_data, load_validation_data,
-    save_validation_data, save_project_data,
-    order_structures_by_latlong, get_next_structure
-    )
+from .utils import (allowed_file, generate_new_output_json, get_next_structure,
+                    load_project_data, load_validation_data,
+                    order_structures_by_latlong, save_project_data,
+                    save_validation_data)
 
 load_dotenv()
 
@@ -108,6 +108,13 @@ def project_summary():
 
 @validation_bp.route('/select_structure', methods=['GET', 'POST'])
 def select_structure():
+    """
+    Route to select a structure for validation.
+    Methods: GET, POST
+
+    Returns:
+        Response: Renders the 'select_structure' template with project and structure data.
+    """
     project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
@@ -191,6 +198,21 @@ def open_pdf():
 
 @validation_bp.route('/upload_photo', methods=['GET', 'POST'])
 def upload_photo():
+    """
+    Route to handle the photo upload process for a specific structure in a project.
+    Methods: GET, POST
+
+    Parameters:
+        project (str): The name of the project.
+        structure (str): The name of the structure.
+        direction (str): The direction of validation (forward or backward).
+        new_structure (bool): Indicates if it's a new structure.
+        latitude (str): The latitude of the structure.
+        longitude (str): The longitude of the structure.
+
+    Returns:
+        Response: Renders the upload photo template on GET request and processes the uploaded photo on POST request.
+    """
     project = request.args.get('project')
     structure = request.args.get('structure')
     direction = request.args.get('direction')
@@ -297,13 +319,28 @@ def add_structure_to_project():
         }
         save_validation_data(validation_data)
 
-        flash(f'"{structure}" adicionada com sucesso ao projeto "{project}"!')
+        flash(f'"{structure}" adicionada com sucesso ao "{project}"!')
 
     return redirect(url_for('validation.project_summary', project=project))
 
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
 def results():
+    """
+    Route to display and handle the results of a structure validation.
+    Methods: GET, POST
+
+    Parameters:
+        project (str): The name of the project.
+        structure (str): The name of the structure.
+        new_structure (bool): Indicates if it's a new structure.
+        latitude (str): The latitude of the structure.
+        longitude (str): The longitude of the structure.
+        direction (str): The direction of validation (forward or backward).
+
+    Returns:
+        Response: Renders the results template on GET request and processes the validation actions on POST request.
+    """
     project = request.args.get('project')
     structure = request.args.get('structure')
     new_structure = request.args.get('new_structure', 'False').lower() == 'true'

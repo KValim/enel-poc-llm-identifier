@@ -31,7 +31,6 @@ Functions:
 import json
 import os
 
-from dotenv import load_dotenv
 from flask import (Blueprint, flash, redirect, render_template, request,
                    send_file, url_for)
 from openai import OpenAI
@@ -42,12 +41,10 @@ from .utils import (allowed_file, generate_new_output_json, get_next_structure,
                     order_structures_by_latlong, save_project_data,
                     save_validation_data)
 
-load_dotenv()
-
 main_bp = Blueprint('main', __name__, template_folder='templates')
 validation_bp = Blueprint('validation', __name__, template_folder='templates')
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @main_bp.route('/', methods=['GET', 'POST'])
 def home():

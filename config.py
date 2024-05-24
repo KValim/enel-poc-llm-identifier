@@ -6,6 +6,10 @@ It includes settings for secret keys, API keys, allowed file extensions, and the
 
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 class Config:
     """
     Configuration settings for the Flask application.
@@ -17,6 +21,6 @@ class Config:
         MODEL (str): The model identifier used for OpenAI API requests.
     """
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'supersecretkey'
-    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     MODEL = "gpt-4o"

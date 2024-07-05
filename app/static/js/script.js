@@ -142,16 +142,17 @@ function showError(error) {
  * Previews the selected image file.
  */
 function previewImage() {
-    var file = document.getElementById("file-input").files;
-    if (file.length > 0) {
-        var fileReader = new FileReader();
+    const fileInput = document.getElementById('file-input');
+    const preview = document.getElementById('image-preview');
+    const file = fileInput.files[0];
+    const reader = new FileReader();
 
-        fileReader.onload = function(event) {
-            document.getElementById("image-preview").setAttribute("src", event.target.result);
-            document.getElementById("image-preview").style.display = "block";
-        };
+    reader.addEventListener('load', function() {
+        preview.src = reader.result;
+    }, false);
 
-        fileReader.readAsDataURL(file[0]);
+    if (file) {
+        reader.readAsDataURL(file);
     }
 }
 
@@ -159,5 +160,6 @@ function previewImage() {
  * Shows the loading spinner overlay.
  */
 function showLoadingSpinner() {
-    document.getElementById('loading-overlay').style.display = 'flex';
+    const overlay = document.getElementById('loading-overlay');
+    overlay.style.display = 'flex';
 }

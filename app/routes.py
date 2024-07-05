@@ -219,6 +219,16 @@ def upload_photo():
     example_image = url_for('static', filename='images/photo-example.webp')
     uploaded_image = None
 
+    if latitude:
+        latitude_rounded = round(float(latitude), 6)
+    else:
+        latitude_rounded = None
+
+    if longitude:
+        longitude_rounded = round(float(longitude), 6)
+    else:
+        longitude_rounded = None
+
     if request.method == 'POST':
         # Check if a file is uploaded
         if 'photo' not in request.files:
@@ -263,7 +273,7 @@ def upload_photo():
         else:
             flash('Formato de arquivo inválido. Apenas imagens são permitidas.')
             return redirect(request.url)
-    return render_template('upload_photo.html', project=project, structure=structure, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure)
+    return render_template('upload_photo.html', project=project, structure=structure, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure, latitude_rounded=latitude_rounded, longitude_rounded=longitude_rounded, latitude=latitude, longitude=longitude)
 
 
 @validation_bp.route('/add_structure_to_project', methods=['POST'])

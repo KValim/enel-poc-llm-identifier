@@ -9,7 +9,7 @@
     <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
-<body>
+<body onload="getLocation()">
     <!-- Loading Spinner Overlay -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="spinner"></div>
@@ -28,8 +28,43 @@
 
         <!-- Page Header -->
         <h1 class="my-4">Upload de Foto</h1>
-        <h2 class="my-4">Projeto: {{ project }}</h2>
-        <h2 class="my-4">Estrutura: {{ structure }}</h2>
+        <h2 class="my-4">{{ project }} - {{ structure }}</h2>
+
+        <hr>
+        <!-- Display Current Coordinates -->
+        <p>Coordenadas Atuais: Latitude: <span id="current-latitude">{{ latitude_rounded }}</span>, Longitude: <span id="current-longitude">{{ longitude_rounded }}</span></p>
+        <!-- Button to Open Modal for Manual Coordinate Input -->
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#coordinateModal">Alterar Coordenadas</button>
+
+        <hr>
+
+        <!-- Modal for Manual Coordinate Input -->
+        <div class="modal fade" id="coordinateModal" tabindex="-1" aria-labelledby="coordinateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="coordinateModalLabel">Alterar Coordenadas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="coordinateForm">
+                            <div class="mb-3">
+                                <label for="latitude" class="form-label">Latitude (ex: -23.550520):</label>
+                                <input type="text" class="form-control" id="latitude" name="latitude" value="{{ latitude or '' }}" placeholder="-23.550520">
+                            </div>
+                            <div class="mb-3">
+                                <label for="longitude" class="form-label">Longitude (ex: -46.633308):</label>
+                                <input type="text" class="form-control" id="longitude" name="longitude" value="{{ longitude or '' }}" placeholder="-46.633308">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" onclick="saveCoordinates()">Salvar Coordenadas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Photo Upload Guidelines -->
         <p class="lead">Siga estas recomendações para garantir a melhor captura:</p>
@@ -42,8 +77,8 @@
 
         <!-- Photo Upload Form -->
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
-            <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
-            <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
+            <input type="hidden" name="latitude" id="form-latitude" value="{{ latitude }}">
+            <input type="hidden" name="longitude" id="form-longitude" value="{{ longitude }}">
             <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
             <input type="hidden" name="new_structure" value="{{ new_structure }}">
             <!-- File Input -->
@@ -108,7 +143,60 @@
             window.location.href = url;
         }
 
-        // Resto do seu JavaScript
+        function saveCoordinates() {
+            var latitude = document.getElementById('latitude').value;
+            var longitude = document.getElementById('longitude').value;
+            if (!isValidLatLong(latitude, longitude)) {
+                alert('Por favor, insira coordenadas válidas.');
+                return;
+            }
+            document.getElementById('current-latitude').innerText = parseFloat(latitude).toFixed(6);
+            document.getElementById('current-longitude').innerText = parseFloat(longitude).toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+            var coordinateModal = new bootstrap.Modal(document.getElementById('coordinateModal'));
+            coordinateModal.hide();
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocalização não é suportada por este navegador.");
+            }
+        }
+
+        function showPosition(position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+            document.getElementById('current-latitude').innerText = latitude.toFixed(6);
+            document.getElementById('current-longitude').innerText = longitude.toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Usuário rejeitou a solicitação de Geolocalização.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("As informações de localização não estão disponíveis.");
+                    break;
+                case error.TIMEOUT:
+                    alert("A solicitação para obter a localização do usuário expirou.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Ocorreu um erro desconhecido.");
+                    break;
+            }
+        }
+
+        function isValidLatLong(lat, long) {
+            var latPattern = /^-?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
+            var longPattern = /^-?((1[0-7]\d(\.\d+)?|180(\.0+)?)|(\d{1,2}(\.\d+)?))$/;
+            return latPattern.test(lat) && longPattern.test(long);
+        }
     </script>
 </body>
 </html>

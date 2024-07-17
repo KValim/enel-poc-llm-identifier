@@ -6,15 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+    <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
 <body onload="getLocation()">
@@ -40,26 +32,35 @@
 
         <hr>
         <!-- Display Current Coordinates -->
-        <p>Coordenadas Atuais: Latitude: <span id="current_latitude">{{ latitude_rounded }}</span>, Longitude: <span id="current_longitude">{{ longitude_rounded }}</span></p>
+        <p>Coordenadas Atuais: Latitude: <span id="current-latitude">{{ latitude_rounded }}</span>, Longitude: <span id="current-longitude">{{ longitude_rounded }}</span></p>
         <!-- Button to Open Modal for Manual Coordinate Input -->
-        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#mapModal">Alterar Coordenadas</button>
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#coordinateModal">Alterar Coordenadas</button>
 
         <hr>
 
         <!-- Modal for Manual Coordinate Input -->
-        <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
+        <div class="modal fade" id="coordinateModal" tabindex="-1" aria-labelledby="coordinateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="mapModalLabel">Selecione a Localização no Mapa</h5>
+                        <h5 class="modal-title" id="coordinateModalLabel">Alterar Coordenadas</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="map" style="height: 500px;"></div>
+                        <form id="coordinateForm">
+                            <div class="mb-3">
+                                <label for="latitude" class="form-label">Latitude (ex: -23.550520):</label>
+                                <input type="text" class="form-control" id="latitude" name="latitude" value="{{ latitude or '' }}" placeholder="-23.550520">
+                            </div>
+                            <div class="mb-3">
+                                <label for="longitude" class="form-label">Longitude (ex: -46.633308):</label>
+                                <input type="text" class="form-control" id="longitude" name="longitude" value="{{ longitude or '' }}" placeholder="-46.633308">
+                            </div>
+                        </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                        <button type="button" class="btn btn-primary" onclick="saveMapCoordinates()">Salvar Coordenadas</button>
+                        <button type="button" class="btn btn-primary" onclick="saveCoordinates()">Salvar Coordenadas</button>
                     </div>
                 </div>
             </div>
@@ -76,10 +77,8 @@
 
         <!-- Photo Upload Form -->
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
-            <input type="hidden" name="latitude" id="form-latitude" value="{{ current_latitude }}">
-            <input type="hidden" name="longitude" id="form-longitude" value="{{ current_longitude }}">
-            <input type="hidden" id="latitude" value="">
-            <input type="hidden" id="longitude" value="">
+            <input type="hidden" name="latitude" id="form-latitude" value="{{ latitude }}">
+            <input type="hidden" name="longitude" id="form-longitude" value="{{ longitude }}">
             <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
             <input type="hidden" name="new_structure" value="{{ new_structure }}">
             <!-- File Input -->
@@ -126,74 +125,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
 
-    <!-- Leaflet Map Initialization -->
     <script>
-        var map;
-        var marker;
-        var mapInitialized = false;
-        
-        function initializeMap(lat, lng) {
-            if (mapInitialized) {
-                map.setView([lat, lng], 18);
-                if (marker) {
-                    map.removeLayer(marker);
-                }
-                marker = L.marker([lat, lng]).addTo(map);
-                return;
-            }
-        
-            map = L.map('map').setView([lat, lng], 18); // Set to maximum zoom level
-        
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-        
-            marker = L.marker([lat, lng]).addTo(map);
-        
-            map.on('click', function(e) {
-                if (marker) {
-                    map.removeLayer(marker);
-                }
-                marker = L.marker(e.latlng).addTo(map);
-                
-                document.getElementById('latitude').value = e.latlng.lat;
-                document.getElementById('longitude').value = e.latlng.lng;
-            });
-        
-            mapInitialized = true;
-        }
-        
-        function openMapModal() {
-            $('#mapModal').modal('show');
-        }
-        
-        function saveMapCoordinates() {
-            var lat = document.getElementById('latitude').value;
-            var lng = document.getElementById('longitude').value;
-            if (lat && lng) {
-                document.getElementById('form-latitude').value = lat;
-                document.getElementById('form-longitude').value = lng;
-                document.getElementById('current_latitude').innerText = parseFloat(lat).toFixed(6);
-                document.getElementById('current_longitude').innerText = parseFloat(lng).toFixed(6);
-                $('#mapModal').modal('hide').on('hidden.bs.modal', function () {
-                    $('body').removeClass('modal-open');
-                    $('.modal-backdrop').remove();
-                });
-            } else {
-                alert('Por favor, selecione um ponto no mapa.');
-            }
-        }
-        
-        $('#mapModal').on('shown.bs.modal', function () {
-            var lat = parseFloat(document.getElementById('form-latitude').value) || -23.55052;
-            var lng = parseFloat(document.getElementById('form-longitude').value) || -46.633308;
-            initializeMap(lat, lng);
-            setTimeout(function() {
-                map.invalidateSize();
-                map.setView([lat, lng], 18); // Set zoom level again to ensure it's maximized
-            }, 10); // Small delay to ensure the map is fully rendered
-        });
-        
         function confirmExit(url) {
             if (url.includes('select_structure')) {
                 var confirmExitBtn = document.getElementById('confirm-exit-btn');
@@ -206,11 +138,26 @@
                 window.location.href = url;
             }
         }
-        
+
         function navigateWithoutConfirmation(url) {
             window.location.href = url;
         }
-        
+
+        function saveCoordinates() {
+            var latitude = document.getElementById('latitude').value;
+            var longitude = document.getElementById('longitude').value;
+            if (!isValidLatLong(latitude, longitude)) {
+                alert('Por favor, insira coordenadas válidas.');
+                return;
+            }
+            document.getElementById('current-latitude').innerText = parseFloat(latitude).toFixed(6);
+            document.getElementById('current-longitude').innerText = parseFloat(longitude).toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+            var coordinateModal = new bootstrap.Modal(document.getElementById('coordinateModal'));
+            coordinateModal.hide();
+        }
+
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(showPosition, showError);
@@ -218,16 +165,16 @@
                 alert("Geolocalização não é suportada por este navegador.");
             }
         }
-        
+
         function showPosition(position) {
             var latitude = position.coords.latitude;
             var longitude = position.coords.longitude;
-            document.getElementById('current_latitude').innerText = latitude.toFixed(6);
-            document.getElementById('current_longitude').innerText = longitude.toFixed(6);
+            document.getElementById('current-latitude').innerText = latitude.toFixed(6);
+            document.getElementById('current-longitude').innerText = longitude.toFixed(6);
             document.getElementById('form-latitude').value = latitude;
             document.getElementById('form-longitude').value = longitude;
         }
-        
+
         function showError(error) {
             switch(error.code) {
                 case error.PERMISSION_DENIED:
@@ -244,13 +191,12 @@
                     break;
             }
         }
-        
+
         function isValidLatLong(lat, long) {
             var latPattern = /^-?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
             var longPattern = /^-?((1[0-7]\d(\.\d+)?|180(\.0+)?)|(\d{1,2}(\.\d+)?))$/;
             return latPattern.test(lat) && longPattern.test(long);
         }
-        
     </script>
 </body>
 </html>

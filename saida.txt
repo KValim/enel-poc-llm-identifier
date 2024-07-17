@@ -20,6 +20,10 @@ It includes settings for secret keys, API keys, allowed file extensions, and the
 
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 class Config:
     """
     Configuration settings for the Flask application.
@@ -31,7 +35,7 @@ class Config:
         MODEL (str): The model identifier used for OpenAI API requests.
     """
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'supersecretkey'
-    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     MODEL = "gpt-4o"
 
@@ -57,6 +61,10 @@ if __name__ == '__main__':
 
 README.md
 ```
+O README foi atualizado conforme solicitado. Aqui está a versão atualizada:
+
+---
+
 # ENEL POC LLM IDENTIFIER
 
 A Flask application for validating project structures using OpenAI's API.
@@ -143,6 +151,8 @@ This Flask application helps in validating structures within different projects.
 - **Upload Photo** (`/upload_photo`): Handles the upload and validation of a photo for a specific structure in a project.
 - **Results** (`/results`): Displays the validation results of a structure and handles validation actions.
 - **Check Validation Status** (`/check_validation_status`): Checks if there are any unvalidated structures in a project.
+- **Add New Structure** (`/add_new_structure`): Route to add a new structure to the project.
+- **Add and Upload** (`/add_and_upload`): Route to generate a new structure name and latitude/longitude, then redirect to the upload photo page without saving to the database.
 
 ## Project Structure
 
@@ -159,6 +169,8 @@ ENEL-POC-LLM-IDENTIFIER/
 │   │   ├── results.html
 │   │   ├── select_structure.html
 │   │   ├── upload_photo.html
+│   │   ├── project_summary.html
+│   │   ├── add_new_structure.html
 │   ├── static/
 │   │   ├── css/
 │   │   │   └── style.css
@@ -166,11 +178,12 @@ ENEL-POC-LLM-IDENTIFIER/
 │   │   ├── js/
 │   │   │   └── script.js
 │   │   └── uploads/
-│   ├── instance/
+├── instance/
 │   │   ├── projetos.json
 │   │   ├── validation.json
 │   │   ├── output.json
 │   │   ├── output.txt
+│   │   ├── results.json
 │   │   ├── pdfs/
 ├── .env.example
 ├── .pylintrc
@@ -183,7 +196,6 @@ ENEL-POC-LLM-IDENTIFIER/
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
 ```
 
 routes.py
@@ -191,7 +203,7 @@ routes.py
 """
 This module provides the Flask application routes and logic for managing project validations,
 including selecting structures, uploading and validating photos, and generating project summaries.
-It integrates OpenAI for generating new output JSON files based on uploaded photos, and uses
+It integrates OpenAI for generating new output JSON files based on uploaded photos and uses
 utility functions for various validation and data handling tasks.
 
 Modules:
@@ -211,33 +223,30 @@ Functions:
     upload_photo(): Handles the upload and validation of a photo for a specific structure in a project.
     results(): Displays the validation results of a structure and handles validation actions.
     check_validation_status(): Checks if there are any unvalidated structures in a project.
+    add_structure_to_project(): Adds a new structure to the project.
+    add_new_structure(): Route to add a new structure to the project.
+    add_and_upload(): Route to generate a new structure name and latitude/longitude, 
+                      then redirect to the upload photo page without saving to the database.
 """
+
 
 import json
 import os
 
-from dotenv import load_dotenv
-from flask import (
-    Blueprint, flash, redirect,
-    render_template, request, send_file, url_for
-    )
+from flask import (Blueprint, flash, redirect, render_template, request,
+                   send_file, url_for)
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 
-from .utils import (
-    allowed_file, calculate_distance,
-    generate_new_output_json, is_valid_latlong,
-    load_project_data, load_validation_data,
-    save_validation_data, save_project_data,
-    order_structures_by_latlong, get_next_structure
-    )
-
-load_dotenv()
+from .utils import (allowed_file, generate_new_output_json, get_next_structure,
+                    load_project_data, load_validation_data,
+                    order_structures_by_latlong, save_project_data,
+                    save_validation_data)
 
 main_bp = Blueprint('main', __name__, template_folder='templates')
 validation_bp = Blueprint('validation', __name__, template_folder='templates')
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @main_bp.route('/', methods=['GET', 'POST'])
 def home():
@@ -270,7 +279,7 @@ def project_summary():
     project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
-    
+
     if project in project_data:
         estruturas_validadas = validation_data.get('validations', {}).get(project, {})
         structures = list(project_data[project].keys())
@@ -298,6 +307,13 @@ def project_summary():
 
 @validation_bp.route('/select_structure', methods=['GET', 'POST'])
 def select_structure():
+    """
+    Route to select a structure for validation.
+    Methods: GET, POST
+
+    Returns:
+        Response: Renders the 'select_structure' template with project and structure data.
+    """
     project = request.args.get('project')
     project_data = load_project_data()
     validation_data = load_validation_data()
@@ -358,7 +374,7 @@ def validate_project():
     unvalidated_structures = {structure: data for structure, data in validation_data['validations'][project].items() if data['status'] == 'to_be_validated'}
 
     if not unvalidated_structures:
-        flash(f'Projeto {project} Validado com sucesso!')
+        flash(f'{project} validado com sucesso!')
         return redirect(url_for('main.home'))
     else:
         flash('Ainda existem estruturas não validadas. Confirme a validação manualmente.')
@@ -381,6 +397,21 @@ def open_pdf():
 
 @validation_bp.route('/upload_photo', methods=['GET', 'POST'])
 def upload_photo():
+    """
+    Route to handle the photo upload process for a specific structure in a project.
+    Methods: GET, POST
+
+    Parameters:
+        project (str): The name of the project.
+        structure (str): The name of the structure.
+        direction (str): The direction of validation (forward or backward).
+        new_structure (bool): Indicates if it's a new structure.
+        latitude (str): The latitude of the structure.
+        longitude (str): The longitude of the structure.
+
+    Returns:
+        Response: Renders the upload photo template on GET request and processes the uploaded photo on POST request.
+    """
     project = request.args.get('project')
     structure = request.args.get('structure')
     direction = request.args.get('direction')
@@ -389,6 +420,16 @@ def upload_photo():
     longitude = request.args.get('longitude')
     example_image = url_for('static', filename='images/photo-example.webp')
     uploaded_image = None
+
+    if latitude:
+        latitude_rounded = round(float(latitude), 6)
+    else:
+        latitude_rounded = None
+
+    if longitude:
+        longitude_rounded = round(float(longitude), 6)
+    else:
+        longitude_rounded = None
 
     if request.method == 'POST':
         # Check if a file is uploaded
@@ -415,7 +456,7 @@ def upload_photo():
 
             # Process the image using OpenAI API
             generate_new_output_json(file_path)
-            
+
             # Verifique o conteúdo do JSON de saída
             with open('instance/output.json', 'r', encoding='utf-8') as file:
                 output_data = file.read()  # Leia o conteúdo como string
@@ -434,7 +475,7 @@ def upload_photo():
         else:
             flash('Formato de arquivo inválido. Apenas imagens são permitidas.')
             return redirect(request.url)
-    return render_template('upload_photo.html', project=project, structure=structure, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure)
+    return render_template('upload_photo.html', project=project, structure=structure, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure, latitude_rounded=latitude_rounded, longitude_rounded=longitude_rounded, latitude=latitude, longitude=longitude)
 
 
 @validation_bp.route('/add_structure_to_project', methods=['POST'])
@@ -487,13 +528,28 @@ def add_structure_to_project():
         }
         save_validation_data(validation_data)
 
-        flash(f'Nova estrutura "{structure}" adicionada com sucesso ao projeto "{project}"!')
+        flash(f'"{structure}" adicionada com sucesso ao "{project}"!')
 
     return redirect(url_for('validation.project_summary', project=project))
 
 
 @validation_bp.route('/results', methods=['GET', 'POST'])
 def results():
+    """
+    Route to display and handle the results of a structure validation.
+    Methods: GET, POST
+
+    Parameters:
+        project (str): The name of the project.
+        structure (str): The name of the structure.
+        new_structure (bool): Indicates if it's a new structure.
+        latitude (str): The latitude of the structure.
+        longitude (str): The longitude of the structure.
+        direction (str): The direction of validation (forward or backward).
+
+    Returns:
+        Response: Renders the results template on GET request and processes the validation actions on POST request.
+    """
     project = request.args.get('project')
     structure = request.args.get('structure')
     new_structure = request.args.get('new_structure', 'False').lower() == 'true'
@@ -564,7 +620,7 @@ def results():
     encontrados = {}
     caracteristicas = {}
     extras = {}
-    
+
     if new_structure:
         for item in output:
             if not item.startswith('Características do') and item != "Quantidades":
@@ -664,7 +720,7 @@ def add_and_upload():
 
     # Carregar os dados de validação
     validation_data = load_validation_data()
-    
+
     # Contar o número de novas estruturas já existentes no projeto
     existing_new_structures = [key for key in validation_data['validations'].get(project, {}) if key.startswith('Nova Estrutura')]
     new_structure_number = len(existing_new_structures) + 1
@@ -676,7 +732,6 @@ def add_and_upload():
 
     # Redirecionar para upload de foto com parâmetros necessários
     return redirect(url_for('validation.upload_photo', project=project, structure=new_structure_name, new_structure=True, latitude=latitude, longitude=longitude))
-
 ```
 
 utils.py
@@ -703,6 +758,8 @@ Functions:
     is_valid_latlong(lat, lon): Checks if the provided latitude and longitude are valid.
     generate_new_output_json(image_path): Generates a new output JSON based on the provided image.
     encode_image(image_path): Encodes an image to a base64 string.
+    order_structures_by_latlong(structures): Orders the structures based on their latitude and longitude.
+    get_next_structure(project, current_structure, direction='forward'): Get the next structure in the project based on the current structure and direction.
 """
 
 import base64
@@ -955,16 +1012,26 @@ def encode_image(image_path):
 def order_structures_by_latlong(structures):
     """
     Orders the structures based on their latitude and longitude.
-    
+
     Args:
         structures (dict): Dictionary of structures with their latitude and longitude.
-        
+
     Returns:
         list: List of structure names ordered by their latitude and longitude.
     """
     return sorted(structures, key=lambda x: (structures[x]['latitude'], structures[x]['longitude']))
 
 def get_next_structure(project, current_structure, direction='forward'):
+    """Get the next structure in the project based on the current structure and direction.
+
+    Args:
+        project (str): The name of the project.
+        current_structure (str): The current structure's name.
+        direction (str, optional): The direction to move ('forward' or 'backward'). Defaults to 'forward'.
+
+    Returns:
+        str or None: The name of the next structure if available, otherwise None.
+    """
     validation_data = load_validation_data()
     project_data = load_project_data()
     structures = list(project_data[project].keys())
@@ -1079,7 +1146,7 @@ add_new_structure.html
                 <input type="text" class="form-control" id="longitude" name="longitude" required>
             </div>
             <!-- Button to Get Location -->
-            <button type="button" class="btn btn-secondary" onclick="getLocation()">Obter Localização</button>
+            <button type="submit" class="btn btn-secondary" onclick="getLocation()">Avaliar Estrutura</button>
             <button type="submit" class="btn btn-primary">Avaliar Estrutura</button>
         </form>
         
@@ -1258,6 +1325,38 @@ project_summary.html
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
     <script src="/static/js/script.js"></script>
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocalização não é suportada por este navegador.");
+            }
+        }
+
+        function showPosition(position) {
+            document.getElementById('latitude').value = position.coords.latitude;
+            document.getElementById('longitude').value = position.coords.longitude;
+            document.getElementById('addStructureForm').submit();
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Usuário rejeitou a solicitação de Geolocalização.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("As informações de localização não estão disponíveis.");
+                    break;
+                case error.TIMEOUT:
+                    alert("A solicitação para obter a localização do usuário expirou.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Ocorreu um erro desconhecido.");
+                    break;
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -1287,9 +1386,11 @@ project_summary.html
         <!-- Buttons -->
         <div class="mt-4">
             <button id="validate-project-btn" class="btn btn-primary" onclick="checkValidationStatus()">Concluir Obra</button>
-            <form method="post" action="{{ url_for('validation.add_and_upload') }}" class="d-inline">
+            <form id="addStructureForm" method="post" action="{{ url_for('validation.add_and_upload') }}" class="d-inline">
                 <input type="hidden" name="project" value="{{ project }}">
-                <button type="submit" class="btn btn-secondary">Adicionar Nova Estrutura</button>
+                <input type="hidden" id="latitude" name="latitude">
+                <input type="hidden" id="longitude" name="longitude">
+                <button type="button" class="btn btn-secondary" onclick="getLocation()">Adicionar Nova Estrutura</button>
             </form>
         </div>
         
@@ -1355,7 +1456,7 @@ project_summary.html
         const selectedProject = "{{ project }}";
         $.post("/validate_project", { project: selectedProject }, function() {
             // Store flash message in local storage
-            localStorage.setItem('flash_message', `Projeto ${selectedProject} Validado com sucesso!`);
+            localStorage.setItem('flash_message', `${selectedProject} validado com sucesso!`);
             // Redirect to home page
             window.location.href = "/";
         });
@@ -1378,6 +1479,7 @@ project_summary.html
 </script>
 </body>
 </html>
+
 ```
 
 results.html
@@ -1551,7 +1653,7 @@ results.html
         // Disable invalidate button if comments are empty
         document.getElementById('validationForm').addEventListener('submit', function(event) {
             var comments = document.getElementById('comments').value.trim();
-            if (event.submitter && event.submitter.name === 'action' && event.submitter.value === 'invalidate_structure' && comments === '') {
+            if (event.submitter && event.submitter.name === 'action' && event.submitter.value === 'invalidate_post' && comments === '') {
                 event.preventDefault();
                 alert('Por favor, comente o motivo da divergência antes de confirmar.');
             }
@@ -1694,7 +1796,7 @@ upload_photo.html
     <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
-<body>
+<body onload="getLocation()">
     <!-- Loading Spinner Overlay -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="spinner"></div>
@@ -1713,8 +1815,43 @@ upload_photo.html
 
         <!-- Page Header -->
         <h1 class="my-4">Upload de Foto</h1>
-        <h2 class="my-4">Projeto: {{ project }}</h2>
-        <h2 class="my-4">Estrutura: {{ structure }}</h2>
+        <h2 class="my-4">{{ project }} - {{ structure }}</h2>
+
+        <hr>
+        <!-- Display Current Coordinates -->
+        <p>Coordenadas Atuais: Latitude: <span id="current-latitude">{{ latitude_rounded }}</span>, Longitude: <span id="current-longitude">{{ longitude_rounded }}</span></p>
+        <!-- Button to Open Modal for Manual Coordinate Input -->
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#coordinateModal">Alterar Coordenadas</button>
+
+        <hr>
+
+        <!-- Modal for Manual Coordinate Input -->
+        <div class="modal fade" id="coordinateModal" tabindex="-1" aria-labelledby="coordinateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="coordinateModalLabel">Alterar Coordenadas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="coordinateForm">
+                            <div class="mb-3">
+                                <label for="latitude" class="form-label">Latitude (ex: -23.550520):</label>
+                                <input type="text" class="form-control" id="latitude" name="latitude" value="{{ latitude or '' }}" placeholder="-23.550520">
+                            </div>
+                            <div class="mb-3">
+                                <label for="longitude" class="form-label">Longitude (ex: -46.633308):</label>
+                                <input type="text" class="form-control" id="longitude" name="longitude" value="{{ longitude or '' }}" placeholder="-46.633308">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" onclick="saveCoordinates()">Salvar Coordenadas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Photo Upload Guidelines -->
         <p class="lead">Siga estas recomendações para garantir a melhor captura:</p>
@@ -1727,8 +1864,8 @@ upload_photo.html
 
         <!-- Photo Upload Form -->
         <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
-            <input type="hidden" name="latitude" value="{{ request.args.get('latitude') }}">
-            <input type="hidden" name="longitude" value="{{ request.args.get('longitude') }}">
+            <input type="hidden" name="latitude" id="form-latitude" value="{{ latitude }}">
+            <input type="hidden" name="longitude" id="form-longitude" value="{{ longitude }}">
             <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
             <input type="hidden" name="new_structure" value="{{ new_structure }}">
             <!-- File Input -->
@@ -1747,7 +1884,7 @@ upload_photo.html
         
         <!-- Conditional Back Button -->
         {% if new_structure %}
-            <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
+            <a href="#" class="btn btn-link mt-4" onclick="navigateWithoutConfirmation('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
         {% else %}
             <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.select_structure', project=project) }}')">Voltar para Seleção de Estruturas</a>
         {% endif %}
@@ -1777,15 +1914,76 @@ upload_photo.html
 
     <script>
         function confirmExit(url) {
-            var confirmExitBtn = document.getElementById('confirm-exit-btn');
-            confirmExitBtn.onclick = function() {
+            if (url.includes('select_structure')) {
+                var confirmExitBtn = document.getElementById('confirm-exit-btn');
+                confirmExitBtn.onclick = function() {
+                    window.location.href = url;
+                };
+                var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+                exitConfirmationModal.show();
+            } else {
                 window.location.href = url;
-            };
-            var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-            exitConfirmationModal.show();
+            }
         }
 
-        // Resto do seu JavaScript
+        function navigateWithoutConfirmation(url) {
+            window.location.href = url;
+        }
+
+        function saveCoordinates() {
+            var latitude = document.getElementById('latitude').value;
+            var longitude = document.getElementById('longitude').value;
+            if (!isValidLatLong(latitude, longitude)) {
+                alert('Por favor, insira coordenadas válidas.');
+                return;
+            }
+            document.getElementById('current-latitude').innerText = parseFloat(latitude).toFixed(6);
+            document.getElementById('current-longitude').innerText = parseFloat(longitude).toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+            var coordinateModal = new bootstrap.Modal(document.getElementById('coordinateModal'));
+            coordinateModal.hide();
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocalização não é suportada por este navegador.");
+            }
+        }
+
+        function showPosition(position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+            document.getElementById('current-latitude').innerText = latitude.toFixed(6);
+            document.getElementById('current-longitude').innerText = longitude.toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Usuário rejeitou a solicitação de Geolocalização.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("As informações de localização não estão disponíveis.");
+                    break;
+                case error.TIMEOUT:
+                    alert("A solicitação para obter a localização do usuário expirou.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Ocorreu um erro desconhecido.");
+                    break;
+            }
+        }
+
+        function isValidLatLong(lat, long) {
+            var latPattern = /^-?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
+            var longPattern = /^-?((1[0-7]\d(\.\d+)?|180(\.0+)?)|(\d{1,2}(\.\d+)?))$/;
+            return latPattern.test(lat) && longPattern.test(long);
+        }
     </script>
 </body>
 </html>
@@ -1796,20 +1994,20 @@ output.json
 {
     "Poste Elétrico": true,
     "Cruzeta": true,
-    "Transformador Trifásico": true,
-    "Luminária": true,
-    "Características do Transformador Trifásico": {
-        "Nível de Oxidação": "Baixo"
+    "Chave Seccionadora (Chave Faca)": true,
+    "Transformador Monofásico": true,
+    "Características do Transformador Monofásico": {
+        "Nível de Oxidação": "Alto"
     },
     "Características do Poste Elétrico": {
-        "Material": "Concreto",
-        "Estado de Conservação": "Novo"
+        "Material": "Madeira",
+        "Estado de Conservação": "Danificado"
     },
     "Quantidades": {
         "Poste Elétrico": 1,
         "Cruzeta": 1,
-        "Transformador Trifásico": 1,
-        "Luminária": 1
+        "Chave Seccionadora (Chave Faca)": 1,
+        "Transformador Monofásico": 1
     }
 }
 ```
@@ -1819,20 +2017,20 @@ output.txt
 {
   "Poste Elétrico": true,
   "Cruzeta": true,
-  "Transformador Trifásico": true,
-  "Luminária": true,
-  "Características do Transformador Trifásico": {
-    "Nível de Oxidação": "Baixo"
+  "Chave Seccionadora (Chave Faca)": true,
+  "Transformador Monofásico": true,
+  "Características do Transformador Monofásico": {
+    "Nível de Oxidação": "Alto"
   },
   "Características do Poste Elétrico": {
-    "Material": "Concreto",
-    "Estado de Conservação": "Novo"
+    "Material": "Madeira",
+    "Estado de Conservação": "Danificado"
   },
   "Quantidades": {
     "Poste Elétrico": 1,
     "Cruzeta": 1,
-    "Transformador Trifásico": 1,
-    "Luminária": 1
+    "Chave Seccionadora (Chave Faca)": 1,
+    "Transformador Monofásico": 1
   }
 }
 ```
@@ -1923,6 +2121,16 @@ projetos.json
             "latitude": -23.55052,
             "longitude": -46.633308,
             "Gabarito": {}
+        },
+        "Nova Estrutura 2": {
+            "latitude": -23.664661,
+            "longitude": -46.533844,
+            "Gabarito": {}
+        },
+        "Nova Estrutura 3": {
+            "latitude": -23.664566,
+            "longitude": -46.534549,
+            "Gabarito": {}
         }
     },
     "Projeto Y": {
@@ -2012,19 +2220,27 @@ results.json
 ```
 {
     "Itens Verificados": {
-        "Poste Elétrico": "Encontrado",
-        "Cruzeta": "Encontrado",
-        "Transformador Trifásico": "Encontrado",
-        "Luminária": "Encontrado"
+        "Poste Elétrico": "Sim",
+        "Cruzeta": "Sim",
+        "Chave Seccionadora (Chave Faca)": "Sim",
+        "Transformador Monofásico": "Sim"
     },
     "Itens Extras": [],
     "Características": {
         "Poste Elétrico": {
-            "Material": "Concreto",
-            "Estado de Conservação": "Novo"
+            "Material": "Madeira",
+            "Estado de Conservação": "Danificado",
+            "Quantidade Identificada": 1
         },
-        "Transformador Trifásico": {
-            "Nível de Oxidação": "Baixo"
+        "Cruzeta": {
+            "Quantidade Identificada": 1
+        },
+        "Chave Seccionadora (Chave Faca)": {
+            "Quantidade Identificada": 1
+        },
+        "Transformador Monofásico": {
+            "Nível de Oxidação": "Alto",
+            "Quantidade Identificada": 1
         }
     }
 }
@@ -2041,13 +2257,21 @@ validation.json
             },
             "Estrutura 2": {
                 "status": "invalid",
-                "comments": "Ele esta la"
+                "comments": "comentario"
             },
             "Estrutura 3": {
-                "status": "to_be_validated",
+                "status": "valid",
                 "comments": ""
             },
             "Nova Estrutura 1": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 2": {
+                "status": "extra",
+                "comments": ""
+            },
+            "Nova Estrutura 3": {
                 "status": "extra",
                 "comments": ""
             }
@@ -2064,6 +2288,10 @@ validation.json
             "Estrutura 6": {
                 "status": "invalid",
                 "comments": "Tudo errado"
+            },
+            "Poste 4": {
+                "status": "to_be_validated",
+                "comments": ""
             }
         },
         "": {}

@@ -32,7 +32,7 @@
         <!-- Project Selection Form -->
         <form method="post">
             <div class="mb-3">
-                <label for="project" class="form-label">Escolha um projeto:</label>
+                <label for="project" class="form-label">Projetos próximos a você:</label>
                 <select name="project" id="project" class="form-select" aria-describedby="projectHelp">
                     <option value="">Selecione um projeto</option>
                     {% for project in projects %}
@@ -41,7 +41,7 @@
                 </select>
             </div>
             <!-- Buttons to Check Structures, Open PDF, and View Project Summary -->
-            <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Escolher Lado de Valiação</button>
+            <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Escolher Lado de Validação</button>
             <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF do Projeto</button>
         </form>
 

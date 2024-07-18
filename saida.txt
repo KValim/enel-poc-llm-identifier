@@ -1255,7 +1255,7 @@ home.html
         <!-- Project Selection Form -->
         <form method="post">
             <div class="mb-3">
-                <label for="project" class="form-label">Escolha um projeto:</label>
+                <label for="project" class="form-label">Projetos próximos a você:</label>
                 <select name="project" id="project" class="form-select" aria-describedby="projectHelp">
                     <option value="">Selecione um projeto</option>
                     {% for project in projects %}
@@ -1264,7 +1264,7 @@ home.html
                 </select>
             </div>
             <!-- Buttons to Check Structures, Open PDF, and View Project Summary -->
-            <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Escolher Lado de Valiação</button>
+            <button type="submit" id="select-structure-btn" name="action" value="select_structure" class="btn btn-primary" disabled>Escolher Lado de Validação</button>
             <button type="button" id="open-pdf-btn" onclick="openPDF();" class="btn btn-primary" disabled>Abrir PDF do Projeto</button>
         </form>
 
@@ -1793,6 +1793,266 @@ upload_photo.html
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+    <script src="/static/js/script.js"></script>
+</head>
+<body onload="getLocation()">
+    <!-- Loading Spinner Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-warning" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <h1 class="my-4">Upload de Foto</h1>
+        <h2 class="my-4">{{ project }} - {{ structure }}</h2>
+
+        <hr>
+        <!-- Display Current Coordinates -->
+        <p>Coordenadas Atuais: Latitude: <span id="current_latitude">{{ latitude_rounded }}</span>, Longitude: <span id="current_longitude">{{ longitude_rounded }}</span></p>
+        <!-- Button to Open Modal for Manual Coordinate Input -->
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#mapModal">Alterar Coordenadas</button>
+
+        <hr>
+
+        <!-- Modal for Manual Coordinate Input -->
+        <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="mapModalLabel">Selecione a Localização no Mapa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="map" style="height: 500px;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" onclick="saveMapCoordinates()">Salvar Coordenadas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo Upload Guidelines -->
+        <p class="lead">Siga estas recomendações para garantir a melhor captura:</p>
+        <ul>
+            <li>Ficar a uma distância que consiga tirar uma foto clara da metade da estrutura para cima.</li>
+            <li>Ficar a 45º do centro da estrutura, buscando o melhor ângulo que mostre com clareza todos os componentes do projeto.</li>
+            <li>Utilizar um celular com resolução alta, sem flash.</li>
+            <li>Buscar ficar de costas para o sol.</li>
+        </ul>
+
+        <!-- Photo Upload Form -->
+        <form method="post" enctype="multipart/form-data" class="my-3" onsubmit="showLoadingSpinner();">
+            <input type="hidden" name="latitude" id="form-latitude" value="{{ current_latitude }}">
+            <input type="hidden" name="longitude" id="form-longitude" value="{{ current_longitude }}">
+            <input type="hidden" id="latitude" value="">
+            <input type="hidden" id="longitude" value="">
+            <input type="hidden" name="direction" value="{{ request.args.get('direction') }}">
+            <input type="hidden" name="new_structure" value="{{ new_structure }}">
+            <!-- File Input -->
+            <div class="mb-3">
+                <input type="file" class="form-control" name="photo" id="file-input" required onchange="previewImage();">
+            </div>
+            <!-- Image Preview -->
+            <img id="image-preview" src="{{ uploaded_image if uploaded_image else example_image }}" alt="Image Preview" class="image-preview">
+            <!-- Upload Progress Bar -->
+            <div class="progress" style="height: 20px; display: none;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary" id="submit-btn">Iniciar Validação</button>
+        </form>
+        
+        <!-- Conditional Back Button -->
+        {% if new_structure %}
+            <a href="#" class="btn btn-link mt-4" onclick="navigateWithoutConfirmation('{{ url_for('validation.project_summary', project=project) }}')">Voltar para o Resumo do Projeto</a>
+        {% else %}
+            <a href="#" class="btn btn-link mt-4" onclick="confirmExit('{{ url_for('validation.select_structure', project=project) }}')">Voltar para Seleção de Estruturas</a>
+        {% endif %}
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exitConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exitConfirmationModalLabel">Confirmação de Saída</h5>
+                </div>
+                <div class="modal-body">
+                    Você perderá toda a validação caso saia do processo. Deseja sair da página?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <button type="button" class="btn btn-primary" id="confirm-exit-btn">Sim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+
+    <!-- Leaflet Map Initialization -->
+    <script>
+        var map;
+        var marker;
+        var mapInitialized = false;
+        
+        function initializeMap(lat, lng) {
+            if (mapInitialized) {
+                map.setView([lat, lng], 18);
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker([lat, lng]).addTo(map);
+                return;
+            }
+        
+            map = L.map('map').setView([lat, lng], 18); // Set to maximum zoom level
+        
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        
+            marker = L.marker([lat, lng]).addTo(map);
+        
+            map.on('click', function(e) {
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker(e.latlng).addTo(map);
+                
+                document.getElementById('latitude').value = e.latlng.lat;
+                document.getElementById('longitude').value = e.latlng.lng;
+            });
+        
+            mapInitialized = true;
+        }
+        
+        function openMapModal() {
+            $('#mapModal').modal('show');
+        }
+        
+        function saveMapCoordinates() {
+            var lat = document.getElementById('latitude').value;
+            var lng = document.getElementById('longitude').value;
+            if (lat && lng) {
+                document.getElementById('form-latitude').value = lat;
+                document.getElementById('form-longitude').value = lng;
+                document.getElementById('current_latitude').innerText = parseFloat(lat).toFixed(6);
+                document.getElementById('current_longitude').innerText = parseFloat(lng).toFixed(6);
+                $('#mapModal').modal('hide').on('hidden.bs.modal', function () {
+                    $('body').removeClass('modal-open');
+                    $('.modal-backdrop').remove();
+                });
+            } else {
+                alert('Por favor, selecione um ponto no mapa.');
+            }
+        }
+        
+        $('#mapModal').on('shown.bs.modal', function () {
+            var lat = parseFloat(document.getElementById('form-latitude').value) || -23.55052;
+            var lng = parseFloat(document.getElementById('form-longitude').value) || -46.633308;
+            initializeMap(lat, lng);
+            setTimeout(function() {
+                map.invalidateSize();
+                map.setView([lat, lng], 18); // Set zoom level again to ensure it's maximized
+            }, 10); // Small delay to ensure the map is fully rendered
+        });
+        
+        function confirmExit(url) {
+            if (url.includes('select_structure')) {
+                var confirmExitBtn = document.getElementById('confirm-exit-btn');
+                confirmExitBtn.onclick = function() {
+                    window.location.href = url;
+                };
+                var exitConfirmationModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+                exitConfirmationModal.show();
+            } else {
+                window.location.href = url;
+            }
+        }
+        
+        function navigateWithoutConfirmation(url) {
+            window.location.href = url;
+        }
+        
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocalização não é suportada por este navegador.");
+            }
+        }
+        
+        function showPosition(position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+            document.getElementById('current_latitude').innerText = latitude.toFixed(6);
+            document.getElementById('current_longitude').innerText = longitude.toFixed(6);
+            document.getElementById('form-latitude').value = latitude;
+            document.getElementById('form-longitude').value = longitude;
+        }
+        
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Usuário rejeitou a solicitação de Geolocalização.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("As informações de localização não estão disponíveis.");
+                    break;
+                case error.TIMEOUT:
+                    alert("A solicitação para obter a localização do usuário expirou.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Ocorreu um erro desconhecido.");
+                    break;
+            }
+        }
+        
+        function isValidLatLong(lat, long) {
+            var latPattern = /^-?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
+            var longPattern = /^-?((1[0-7]\d(\.\d+)?|180(\.0+)?)|(\d{1,2}(\.\d+)?))$/;
+            return latPattern.test(lat) && longPattern.test(long);
+        }
+        
+    </script>
+</body>
+</html>
+```
+
+upload_photo_.html
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload de Foto</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
     <!-- Custom JavaScript -->
     <script src="/static/js/script.js"></script>
 </head>
@@ -1995,19 +2255,21 @@ output.json
     "Poste Elétrico": true,
     "Cruzeta": true,
     "Chave Seccionadora (Chave Faca)": true,
-    "Transformador Monofásico": true,
-    "Características do Transformador Monofásico": {
-        "Nível de Oxidação": "Alto"
+    "Transformador Trifásico": true,
+    "Luminária": true,
+    "Características do Transformador Trifásico": {
+        "Nível de Oxidação": "Baixo"
     },
     "Características do Poste Elétrico": {
-        "Material": "Madeira",
-        "Estado de Conservação": "Danificado"
+        "Material": "Concreto",
+        "Estado de Conservação": "Novo"
     },
     "Quantidades": {
         "Poste Elétrico": 1,
-        "Cruzeta": 1,
-        "Chave Seccionadora (Chave Faca)": 1,
-        "Transformador Monofásico": 1
+        "Cruzeta": 2,
+        "Chave Seccionadora (Chave Faca)": 3,
+        "Transformador Trifásico": 1,
+        "Luminária": 1
     }
 }
 ```
@@ -2018,19 +2280,21 @@ output.txt
   "Poste Elétrico": true,
   "Cruzeta": true,
   "Chave Seccionadora (Chave Faca)": true,
-  "Transformador Monofásico": true,
-  "Características do Transformador Monofásico": {
-    "Nível de Oxidação": "Alto"
+  "Transformador Trifásico": true,
+  "Luminária": true,
+  "Características do Transformador Trifásico": {
+    "Nível de Oxidação": "Baixo"
   },
   "Características do Poste Elétrico": {
-    "Material": "Madeira",
-    "Estado de Conservação": "Danificado"
+    "Material": "Concreto",
+    "Estado de Conservação": "Novo"
   },
   "Quantidades": {
     "Poste Elétrico": 1,
-    "Cruzeta": 1,
-    "Chave Seccionadora (Chave Faca)": 1,
-    "Transformador Monofásico": 1
+    "Cruzeta": 2,
+    "Chave Seccionadora (Chave Faca)": 3,
+    "Transformador Trifásico": 1,
+    "Luminária": 1
   }
 }
 ```
@@ -2223,23 +2487,27 @@ results.json
         "Poste Elétrico": "Sim",
         "Cruzeta": "Sim",
         "Chave Seccionadora (Chave Faca)": "Sim",
-        "Transformador Monofásico": "Sim"
+        "Transformador Trifásico": "Sim",
+        "Luminária": "Sim"
     },
     "Itens Extras": [],
     "Características": {
         "Poste Elétrico": {
-            "Material": "Madeira",
-            "Estado de Conservação": "Danificado",
+            "Material": "Concreto",
+            "Estado de Conservação": "Novo",
             "Quantidade Identificada": 1
         },
         "Cruzeta": {
-            "Quantidade Identificada": 1
+            "Quantidade Identificada": 2
         },
         "Chave Seccionadora (Chave Faca)": {
+            "Quantidade Identificada": 3
+        },
+        "Transformador Trifásico": {
+            "Nível de Oxidação": "Baixo",
             "Quantidade Identificada": 1
         },
-        "Transformador Monofásico": {
-            "Nível de Oxidação": "Alto",
+        "Luminária": {
             "Quantidade Identificada": 1
         }
     }
@@ -2257,7 +2525,7 @@ validation.json
             },
             "Estrutura 2": {
                 "status": "invalid",
-                "comments": "comentario"
+                "comments": "Ta la confia"
             },
             "Estrutura 3": {
                 "status": "valid",

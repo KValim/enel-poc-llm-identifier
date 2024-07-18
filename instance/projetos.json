@@ -1,8 +1,8 @@
 {
     "Projeto X": {
         "Estrutura 1": {
-            "latitude": -23.55052,
-            "longitude": -46.633308,
+            "latitude": -23.558386,
+            "longitude": -46.592943,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -27,8 +27,8 @@
             }
         },
         "Estrutura 2": {
-            "latitude": -23.55102,
-            "longitude": -46.634308,
+            "latitude": -23.558799,
+            "longitude": -46.591956,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -57,8 +57,8 @@
             }
         },
         "Estrutura 3": {
-            "latitude": -23.55252,
-            "longitude": -46.635308,
+            "latitude": -23.559182,
+            "longitude": -46.591087,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -77,21 +77,6 @@
                     "Quantidade": 1
                 }
             }
-        },
-        "Nova Estrutura 1": {
-            "latitude": -23.55052,
-            "longitude": -46.633308,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 2": {
-            "latitude": -23.664661,
-            "longitude": -46.533844,
-            "Gabarito": {}
-        },
-        "Nova Estrutura 3": {
-            "latitude": -23.664566,
-            "longitude": -46.534549,
-            "Gabarito": {}
         }
     },
     "Projeto Y": {

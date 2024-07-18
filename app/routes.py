@@ -32,7 +32,7 @@ import json
 import os
 
 from flask import (Blueprint, flash, redirect, render_template, request,
-                   send_file, url_for)
+                   send_file, url_for, jsonify)
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 
@@ -152,8 +152,26 @@ def select_structure():
             selected_structure = request.form['structure']
             return redirect(url_for('validation.upload_photo', project=project, structure=selected_structure))
 
+    # Prepare structure data for the map
+    structure_map_data = [{'name': structure, 'latitude': project_data[project][structure]['latitude'], 'longitude': project_data[project][structure]['longitude']} for structure in structures]
+
+    lado_a_structure = ordered_structures[0]
+    lado_b_structure = ordered_structures[2]
+
+    lado_a = {
+        'name': lado_a_structure,
+        'latitude': project_data[project][lado_a_structure]['latitude'],
+        'longitude': project_data[project][lado_a_structure]['longitude']
+    }
+    lado_b = {
+        'name': lado_b_structure,
+        'latitude': project_data[project][lado_b_structure]['latitude'],
+        'longitude': project_data[project][lado_b_structure]['longitude']
+    }
+
     return render_template('select_structure.html', project=project, structures=ordered_structures, validadas=validation_data['validations'][project],
-                           total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas)
+                           total_validas=total_validas, total_invalidas=total_invalidas, total_nao_validadas=total_nao_validadas, structure_map_data=structure_map_data,
+                           lado_a=lado_a, lado_b=lado_b)
 
 @validation_bp.route('/validate_project', methods=['POST'])
 def validate_project():
@@ -275,7 +293,24 @@ def upload_photo():
             return redirect(request.url)
     return render_template('upload_photo.html', project=project, structure=structure, example_image=example_image, uploaded_image=uploaded_image, new_structure=new_structure, latitude_rounded=latitude_rounded, longitude_rounded=longitude_rounded, latitude=latitude, longitude=longitude)
 
-
+@validation_bp.route('/get_structure_coordinates', methods=['GET', 'POST'])
+def get_structure_coordinates():
+    project = request.args.get('project')
+    structure = request.args.get('structure')
+    print(project, structure)
+    
+    project_data = load_project_data()
+    print(project_data)
+    
+    if project in project_data and structure in project_data[project]:
+        structure_data = project_data[project][structure]
+        return jsonify({
+            'latitude': structure_data['latitude'],
+            'longitude': structure_data['longitude']
+        })
+    else:
+        return jsonify({'error': 'Estrutura não encontrada no projeto.'}), 404
+    
 @validation_bp.route('/add_structure_to_project', methods=['POST'])
 def add_structure_to_project():
     """

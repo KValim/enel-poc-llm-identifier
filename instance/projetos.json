@@ -80,9 +80,9 @@
         }
     },
     "Projeto Y": {
-        "Poste 4": {
-            "latitude": -22.91002,
-            "longitude": -43.2075,
+        "Estrutura 4": {
+            "latitude": -23.559010,
+            "longitude": -46.587415,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -107,8 +107,8 @@
             }
         },
         "Estrutura 5": {
-            "latitude": -22.91102,
-            "longitude": -43.2085,
+            "latitude": -23.559064,
+            "longitude":  -46.586997,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",
@@ -137,8 +137,8 @@
             }
         },
         "Estrutura 6": {
-            "latitude": -22.91202,
-            "longitude": -43.2095,
+            "latitude": -23.559207,
+            "longitude": -46.586649,
             "Gabarito": {
                 "Poste Elétrico": {
                     "Existe": "True",

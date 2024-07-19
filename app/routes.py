@@ -297,10 +297,8 @@ def upload_photo():
 def get_structure_coordinates():
     project = request.args.get('project')
     structure = request.args.get('structure')
-    print(project, structure)
     
     project_data = load_project_data()
-    print(project_data)
     
     if project in project_data and structure in project_data[project]:
         structure_data = project_data[project][structure]

@@ -125,7 +125,6 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-
     <!-- Leaflet Map Initialization -->
     <script>
         var map;
@@ -150,15 +149,23 @@
                 addMarkers(lat, lng, structureLat, structureLon);
                 return;
             }
-
+        
             map = L.map('map').setView([lat, lng], 18); // Set to maximum zoom level
-
+        
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
-
+        
             addMarkers(lat, lng, structureLat, structureLon);
-
+        
+            // Draw circle around structure
+            var circle = L.circle([structureLat, structureLon], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.5,
+                radius: 10
+            }).addTo(map);
+        
             map.on('click', function(e) {
                 if (userMarker) {
                     map.removeLayer(userMarker);
@@ -168,10 +175,40 @@
                 document.getElementById('latitude').value = e.latlng.lat;
                 document.getElementById('longitude').value = e.latlng.lng;
             });
-
+        
             mapInitialized = true;
         }
-
+        
+        document.getElementById('submit-btn').addEventListener('click', function(event) {
+            var userLat = parseFloat(document.getElementById('current_latitude').innerText);
+            var userLng = parseFloat(document.getElementById('current_longitude').innerText);
+            var structureLat = parseFloat(document.getElementById('structure-latitude').value);
+            var structureLon = parseFloat(document.getElementById('structure-longitude').value);
+        
+            var distance = getDistance(userLat, userLng, structureLat, structureLon);
+        
+            if (distance > 10) {
+                event.preventDefault();
+                alert('Muito distante da estrutura, distância máxima 10 metros');
+            }
+        });
+        
+        function getDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371e3; // Earth radius in meters
+            var φ1 = lat1 * Math.PI/180;
+            var φ2 = lat2 * Math.PI/180;
+            var Δφ = (lat2 - lat1) * Math.PI/180;
+            var Δλ = (lon2 - lon1) * Math.PI/180;
+        
+            var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+            var d = R * c;
+            return d;
+        }
+        
         function addMarkers(lat, lng, structureLat, structureLon) {
             // Add user marker with custom icon
             userMarker = L.marker([lat, lng], {
@@ -302,7 +339,7 @@
         
             console.log("Finalizando a função fetchStructureCoordinates");
         }
-        
+
         function isValidLatLong(lat, long) {
             var latPattern = /^-?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
             var longPattern = /^-?((1[0-7]\d(\.\d+)?|180(\.0+)?)|(\d{1,2}(\.\d+)?))$/;

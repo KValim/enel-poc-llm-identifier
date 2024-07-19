@@ -7,10 +7,14 @@
             },
             "Estrutura 2": {
                 "status": "invalid",
-                "comments": ""
+                "comments": "Não recebi as estruturas mencionadas em 'Deveriam Existir'."
             },
             "Estrutura 3": {
                 "status": "valid",
+                "comments": ""
+            },
+            "Nova Estrutura 1": {
+                "status": "extra",
                 "comments": ""
             }
         },

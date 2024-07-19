@@ -70,44 +70,56 @@
                     {% endif %}
                 {% endfor %}
             </ul>
-
+            
             <!-- Exceptions Found Section -->
-            <h2 class="section-header">Exceções Encontradas:</h2>
-            <!-- Should Exist Subsection -->
-            <h3 class="subsection-header">Deveriam Existir:</h3>
-            <ul class="list-group mb-4">
-                {% for item, status in encontrados.items() %}
-                    {% if status == 'Não' %}
-                        <li class="list-group-item item-nao">
-                            <span>{{ item }}: <i class="icon-nao">✗</i></span>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-
-            <!-- Unplanned Found Items Subsection -->
-            <h3 class="subsection-header">Itens Encontrados Não Planejados:</h3>
-            <ul class="list-group mb-4">
-                {% for item in extras %}
-                    <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
-                        <span>{{ item }}</span>
-                        {% if item in caracteristicas %}
-                            <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
-                        {% else %}
-                            <span class="minus">&#8211;</span>
-                        {% endif %}
-                    </li>
-                    {% if item in caracteristicas %}
-                        <div id="details-extra-{{ loop.index }}" class="details">
-                            <ul>
-                                {% for caract, valor in caracteristicas[item].items() %}
-                                    <li>{{ caract }}: {{ valor }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            </ul>
+            {% set exceptions_nao = encontrados.values() | select('eq', 'Não') | list %}
+            {% set should_exist_empty = exceptions_nao | length == 0 %}
+            {% set unplanned_empty = extras | length == 0 %}
+            
+            {% if not should_exist_empty or not unplanned_empty %}
+                <h2 class="section-header">Exceções Encontradas:</h2>
+            
+                <!-- Should Exist Subsection -->
+                {% if not should_exist_empty %}
+                    <h3 class="subsection-header">Deveriam Existir:</h3>
+                    <ul class="list-group mb-4">
+                        {% for item, status in encontrados.items() %}
+                            {% if status == 'Não' %}
+                                <li class="list-group-item item-nao">
+                                    <span>{{ item }}: <i class="icon-nao">✗</i></span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            
+                <!-- Unplanned Found Items Subsection -->
+                {% if not unplanned_empty %}
+                    <h3 class="subsection-header">Itens Encontrados Não Planejados:</h3>
+                    <ul class="list-group mb-4">
+                        {% for item in extras %}
+                            <li class="list-group-item item-nao-planejado" id="item-extra-{{ loop.index }}" onclick="toggleDetails('extra-{{ loop.index }}')">
+                                <span>{{ item }}</span>
+                                {% if item in caracteristicas %}
+                                    <span class="arrow" id="arrow-extra-{{ loop.index }}">&#8250;</span>
+                                {% else %}
+                                    <span class="minus">&#8211;</span>
+                                {% endif %}
+                            </li>
+                            {% if item in caracteristicas %}
+                                <div id="details-extra-{{ loop.index }}" class="details">
+                                    <ul>
+                                        {% for caract, valor in caracteristicas[item].items() %}
+                                            <li>{{ caract }}: {{ valor }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endif %}
+        
         {% endif %}
 
         <!-- Comments Form -->

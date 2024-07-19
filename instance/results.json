@@ -3,7 +3,9 @@
         "Poste Elétrico": "Sim",
         "Cruzeta": "Sim",
         "Chave Seccionadora (Chave Faca)": "Sim",
-        "Transformador Monofásico": "Sim"
+        "Transformador Trifásico": "Sim",
+        "Transformador Monofásico": "Não",
+        "Luminária": "Não"
     },
     "Itens Extras": [],
     "Características": {
@@ -18,7 +20,7 @@
         "Chave Seccionadora (Chave Faca)": {
             "Quantidade Identificada": 1
         },
-        "Transformador Monofásico": {
+        "Transformador Trifásico": {
             "Nível de Oxidação": "Médio",
             "Quantidade Identificada": 1
         }
